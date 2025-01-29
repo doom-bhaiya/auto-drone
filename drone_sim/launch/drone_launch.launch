@@ -6,5 +6,10 @@
         args="-param robot_description -urdf -model my_robot" />
   
   <!-- Launch Gazebo -->
-  <include file="$(find gazebo_ros)/launch/empty_world.launch" />
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find drone_sim)/world/base_world.world"/>
+    </include>
+
 </launch>
+
+

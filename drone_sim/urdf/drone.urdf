@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <robot name="robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
   
+sdyvbcfsiydbcuysbdcuyb
+
+
 <link name="base_link">
   <visual>
     <geometry>

@@ -7,11 +7,17 @@ project(drone_sim)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp REQUIRED 
+  gazebo_ros REQUIRED
+  std_msgs REQUIRED
+)
+
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(gazebo REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -112,8 +118,10 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
-# ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+  ${GAZEBO_INCLUDE_DIRS}
+  ${roscpp_INCLUDE_DIRS}
+  ${std_msgs_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -200,3 +208,15 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+link_directories(${GAZEBO_LIBRARY_DIRS})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
+
+
+
+add_library(drone_thrust_plugin SHARED src/drone_plugin.cpp)
+target_link_libraries(drone_thrust_plugin ${GAZEBO_LIBRARIES}  ${roscpp_LIBRARIES})
+
+add_executable(drone_plugin_exec src/drone_plugin_exec.cpp)
+target_link_libraries(drone_plugin_exec ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})

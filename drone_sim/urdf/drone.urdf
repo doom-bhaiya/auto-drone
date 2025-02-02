@@ -23,4 +23,6 @@
   </inertial>
 </link>
 
+ <plugin name="drone_thrust_plugin" filename="libdrone_thrust_plugin.so"/>
+
 </robot>

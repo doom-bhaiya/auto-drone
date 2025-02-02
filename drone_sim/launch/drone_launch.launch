@@ -1,14 +1,17 @@
 <launch>
   <!-- Load URDF and Spawn in Gazebo -->
-  <param name="robot_description" command="$(find xacro)/xacro '$(find drone_sim)/urdf/drone.urdf'" />
-
-  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
-        args="-param robot_description -urdf -model my_robot" />
+  <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find drone_sim)/urdf/drone.urdf'" /> -->
   
   <!-- Launch Gazebo -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-        <arg name="world_name" value="$(find drone_sim)/world/base_world.world"/>
+        <arg name="world_name" value="$(find drone_sim)/urdf/drone.sdf"/>
     </include>
+
+  <node name="spawn_model" pkg="gazebo_ros" type="spawn_model" output="screen"
+        args="-file $(find drone_sim)/urdf/drone.sdf -sdf -model my_robot"/>
+
+
+    <!-- <node name="drone_plugin" pkg="drone_sim" type="drone_plugin_exec" output="screen"/> -->
 
 </launch>
 

@@ -10,26 +10,5 @@
       <uri>model://ground_plane</uri>
     </include>
 
-    <!-- A testing model that includes the Velodyne sensor model -->
-    <model name="my_velodyne">
-
-      <plugin name="urdf_loader" filename="libgazebo_ros_factory.so">
-        <robotNamespace>/</robotNamespace>
-        <urdf>file://$(find drone_sim)/urdf/drone.urdf</urdf>
-        <isURDF>true</isURDF>
-      </plugin>
-
-      <!-- Attach the plugin to this model -->
-      <plugin name="drone_thrust_plugin" filename="libdrone_thrust_plugin.so"/>
-    </model>
-
-  <model name="my_robot">
-    <plugin name="urdf_loader" filename="libgazebo_ros_factorys.so">
-      <robotNamespace>/</robotNamespace>
-      <urdf>file://$(find drone_sim)/urdf/drone.urdf</urdf>
-      <isURDF>true</isURDF>
-    </plugin>
-  </model>
-
   </world>
 </sdf>

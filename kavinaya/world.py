@@ -1,5 +1,5 @@
 #code something hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-#kolatattam
+#kolattam
 import random
 print('Kolaattam')
 ys=input('Aaduvoma? = Aan or No:')

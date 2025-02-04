@@ -4,12 +4,58 @@
 
 #include <thread>
 #include "ros/ros.h"
+#include <ros/package.h>
 #include "ros/callback_queue.h"
 #include "ros/subscribe_options.h"
 #include "std_msgs/Float32.h"
 
+#include "drone_msgs/PropellerVelocity.h"
+
 #include <geometry_msgs/Wrench.h>
 
+struct ConfigParams {
+    double k1 = 0.0, k2 = 0.0, m = 0.0, Ip = 0.0;
+};
+
+bool loadConfig(const std::string &package_name, const std::string &config_file, ConfigParams &params)
+{
+    // Get absolute path of the package
+    std::string package_path = ros::package::getPath(package_name);
+    if (package_path.empty())
+    {
+        ROS_ERROR_STREAM("Error: Could not find package: " << package_name);
+        return false;
+    }
+
+    // Construct absolute path to config.txt
+    std::string file_path = package_path + "/config/" + config_file;
+    
+    std::ifstream file(file_path);
+    if (!file.is_open())
+    {
+        ROS_ERROR_STREAM("Error: Unable to open config file: " << file_path);
+        return false;
+    }
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+        std::istringstream ss(line);
+        std::string key;
+        double value;
+
+        if (std::getline(ss, key, '=') && ss >> value)
+        {
+            if (key == "k1") params.k1 = value;
+            else if (key == "k2") params.k2 = value;
+            else if (key == "m") params.m = value;
+            else if (key == "Ip") params.Ip = value;
+        }
+    }
+
+    file.close();
+    return true;
+}
 namespace gazebo
 {
   class DroneThrustPlugin : public ModelPlugin
@@ -44,18 +90,32 @@ namespace gazebo
 
   public:
 
-    void UpdateObjectForce(const geometry_msgs::Wrench::ConstPtr& _msg)
+    void UpdateObjectForce(const <drone_msgs::PropellerVelocity>& _msg)
     {
-      this->wrench_msg_.force.x = _msg->force.x;
-      this->wrench_msg_.force.y = _msg->force.y;
-      this->wrench_msg_.force.z = _msg->force.z;
-      this->wrench_msg_.torque.x = _msg->torque.x;
-      this->wrench_msg_.torque.y = _msg->torque.y;
-      this->wrench_msg_.torque.z = _msg->torque.z;
+              ROS_INFO_STREAM("Published Propeller Velocities: " 
+            << msg.prop1 << ", " << msg.prop2 << ", " << msg.prop3 << ", " << msg.prop4);
+
+      // this->wrench_msg_.force.x = _msg->force.x;
+      // this->wrench_msg_.force.y = _msg->force.y;
+      // this->wrench_msg_.force.z = _msg->force.z;
+      // this->wrench_msg_.torque.x = _msg->torque.x;
+      // this->wrench_msg_.torque.y = _msg->torque.y;
+      // this->wrench_msg_.torque.z = _msg->torque.z;
     }
 
     void Load(physics::ModelPtr _model, sdf::ElementPtr /*_sdf*/)
     {
+
+  ConfigParams params;
+  std::string package_name = "drone_sim";
+    if (loadConfig(package_name, "drone_params.txt", params))
+    {
+        ROS_INFO_STREAM("Loaded Configurations:");
+        ROS_INFO_STREAM("k1: " << params.k1);
+        ROS_INFO_STREAM("k2: " << params.k2);
+        ROS_INFO_STREAM("m: " << params.m);
+        ROS_INFO_STREAM("Ip: " << params.Ip);
+    }
 
       ROS_INFO("Hello World!");
 
@@ -81,7 +141,7 @@ namespace gazebo
 
       this->rosnode_ = new ros::NodeHandle(this->robot_namespace_);
 
-      ros::SubscribeOptions so = ros::SubscribeOptions::create<geometry_msgs::Wrench>(
+      ros::SubscribeOptions so = ros::SubscribeOptions::create<drone_msgs::PropellerVelocity>(
           this->topic_name_,1,
           boost::bind( &DroneThrustPlugin::UpdateObjectForce,this, boost::placeholders::_1),
           ros::VoidPtr(), &this->queue_);

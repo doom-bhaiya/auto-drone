@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp REQUIRED 
   gazebo_ros REQUIRED
   std_msgs REQUIRED
+  message_runtime  REQUIRED
+  drone_msgs
 )
 
 
@@ -105,11 +107,13 @@ find_package(gazebo REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
+  CATKIN_DEPENDS message_runtime drone_msgs
+)
 #  INCLUDE_DIRS include
 #  LIBRARIES drone_sim
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
-)
+# )
 
 ###########
 ## Build ##
@@ -217,6 +221,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
 
 add_library(drone_thrust_plugin SHARED src/drone_plugin.cpp)
 target_link_libraries(drone_thrust_plugin ${GAZEBO_LIBRARIES}  ${roscpp_LIBRARIES})
+add_dependencies(drone_thrust_plugin drone_msgs_generate_messages_cpp)
 
 add_executable(drone_plugin_exec src/drone_plugin_exec.cpp)
 target_link_libraries(drone_plugin_exec ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})

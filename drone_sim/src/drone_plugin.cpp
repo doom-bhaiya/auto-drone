@@ -90,11 +90,13 @@ namespace gazebo
 
   public:
 
-    void UpdateObjectForce(const <drone_msgs::PropellerVelocity>& _msg)
+    void UpdateObjectForce(const boost::shared_ptr<const drone_msgs::PropellerVelocity>& _msg)
     {
-              ROS_INFO_STREAM("Published Propeller Velocities: " 
-            << msg.prop1 << ", " << msg.prop2 << ", " << msg.prop3 << ", " << msg.prop4);
-
+      ROS_INFO_STREAM("Received propeller velocities: "
+                      << _msg->prop1 << ", "
+                      << _msg->prop2 << ", "
+                      << _msg->prop3 << ", "
+                      << _msg->prop4);
       // this->wrench_msg_.force.x = _msg->force.x;
       // this->wrench_msg_.force.y = _msg->force.y;
       // this->wrench_msg_.force.z = _msg->force.z;

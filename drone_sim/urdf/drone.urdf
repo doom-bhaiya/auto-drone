@@ -1,29 +1,150 @@
 <?xml version="1.0"?>
-<robot name="my_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  
-<link name="base_link">
-  <visual>
-    <geometry>
-      <mesh filename="package://drone_sim/meshes/drone.stl" scale="0.001 0.001 0.001"/>
-    </geometry>
-    <material name="gray">
-      <color rgba="0.7 0.7 0.7 1"/>
-    </material>
-  </visual>
+<robot name="my_robot">
 
-  <collision>
-    <geometry>
-      <mesh filename="package://drone_sim/meshes/drone.stl" scale="0.001 0.001 0.001"/>
-    </geometry>
-  </collision>
+  <!-- Base Link -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <mesh filename="package://drone_sim/meshes/drone.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
 
-  <inertial>
-    <mass value="1.0"/>
-    <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
-  </inertial>
-</link>
+    <collision>
+      <geometry>
+        <mesh filename="package://drone_sim/meshes/drone.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
 
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <!-- Propeller 1 -->
+  <link name="prop">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
+    </inertial>
+
+    <collision>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+  </link>
+
+  <!-- Propeller 2 -->
+  <link name="prop2">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
+    </inertial>
+
+    <collision>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+  </link>
+
+  <!-- Propeller 3 -->
+  <link name="prop3">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
+    </inertial>
+
+    <collision>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+  </link>
+
+  <!-- Propeller 4 -->
+  <link name="prop4">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
+    </inertial>
+
+    <collision>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+  </link>
+
+  <!-- Propeller 1 Joint -->
+  <joint name="prop1_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="prop"/>
+    <origin xyz="0.105 0.105 0.0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1.0" velocity="100"/>
+  </joint>
+
+  <!-- Propeller 2 Joint -->
+  <joint name="prop2_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="prop2"/>
+    <origin xyz="0.105 -0.105 0.0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1.0" velocity="100"/>
+  </joint>
+
+  <!-- Propeller 3 Joint -->
+  <joint name="prop3_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="prop3"/>
+    <origin xyz="-0.105 -0.105 0.0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1.0" velocity="100"/>
+  </joint>
+
+  <!-- Propeller 4 Joint -->
+  <joint name="prop4_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="prop4"/>
+    <origin xyz="-0.105 0.105 0.0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1.0" velocity="100"/>
+  </joint>
+
+  <!-- Gazebo plugin -->
   <gazebo>
     <plugin name="drone_thrust_plugin" filename="libdrone_thrust_plugin.so"/>
   </gazebo>
+
 </robot>

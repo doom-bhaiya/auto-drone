@@ -65,12 +65,22 @@ namespace gazebo
     physics::LinkPtr base_link;
 
     physics::WorldPtr world_;
-    physics::LinkPtr link_;
+    physics::LinkPtr base_link_;
+
+    physics::LinkPtr prop_link1_;
+    physics::LinkPtr prop_link2_;
+    physics::LinkPtr prop_link3_;
+    physics::LinkPtr prop_link4_;
+
 
     std::string robot_namespace_;
 
 
     geometry_msgs::Wrench wrench_msg_;
+    geometry_msgs::Wrench wrench_msg_1;
+    geometry_msgs::Wrench wrench_msg_2;
+    geometry_msgs::Wrench wrench_msg_3;
+    geometry_msgs::Wrench wrench_msg_4;
 
     ros::NodeHandle* rosnode_;
 
@@ -88,27 +98,53 @@ namespace gazebo
     std::string link_name; 
     std::string topic_name_;
 
+    ConfigParams params;
+
   public:
 
     void UpdateObjectForce(const boost::shared_ptr<const drone_msgs::PropellerVelocity>& _msg)
     {
-      ROS_INFO_STREAM("Received propeller velocities: "
-                      << _msg->prop1 << ", "
-                      << _msg->prop2 << ", "
-                      << _msg->prop3 << ", "
-                      << _msg->prop4);
-      // this->wrench_msg_.force.x = _msg->force.x;
-      // this->wrench_msg_.force.y = _msg->force.y;
-      // this->wrench_msg_.force.z = _msg->force.z;
-      // this->wrench_msg_.torque.x = _msg->torque.x;
-      // this->wrench_msg_.torque.y = _msg->torque.y;
-      // this->wrench_msg_.torque.z = _msg->torque.z;
+
+      this->wrench_msg_.force.x = 0;
+      this->wrench_msg_.force.y = 0;
+      this->wrench_msg_.force.z = 0;
+      this->wrench_msg_.torque.x = 0;
+      this->wrench_msg_.torque.y = 0;
+      this->wrench_msg_.torque.z = params.k2 * ((_msg->prop1 * _msg->prop1) - (_msg->prop2 * _msg->prop2) + (_msg->prop3 * _msg->prop3) - (_msg->prop4 * _msg->prop4));
+
+      this->wrench_msg_1.force.x = 0;
+      this->wrench_msg_1.force.y = 0;
+      this->wrench_msg_1.force.z = params.k1 * (_msg->prop4 * _msg->prop4);
+      this->wrench_msg_1.torque.x = 0;
+      this->wrench_msg_1.torque.y = 0;
+      this->wrench_msg_1.torque.z = 
+
+      this->wrench_msg_2.force.x = 0;
+      this->wrench_msg_2.force.y = 0;
+      this->wrench_msg_2.force.z = params.k1 * (_msg->prop4 * _msg->prop4);
+      this->wrench_msg_2.torque.x = 0;
+      this->wrench_msg_2.torque.y = 0;
+      this->wrench_msg_2.torque.z = 
+
+      this->wrench_msg_3.force.x = 0;
+      this->wrench_msg_3.force.y = 0;
+      this->wrench_msg_3.force.z = params.k1 * (_msg->prop4 * _msg->prop4);
+      this->wrench_msg_3.torque.x = 0;
+      this->wrench_msg_3.torque.y = 0;
+      this->wrench_msg_3.torque.z = 
+
+      this->wrench_msg_4.force.x = 0;
+      this->wrench_msg_4.force.y = 0;
+      this->wrench_msg_4.force.z = params.k1 * (_msg->prop4 * _msg->prop4);
+      this->wrench_msg_4.torque.x = 0;
+      this->wrench_msg_4.torque.y = 0;
+      this->wrench_msg_4.torque.z = 0;
     }
 
     void Load(physics::ModelPtr _model, sdf::ElementPtr /*_sdf*/)
     {
 
-  ConfigParams params;
+
   std::string package_name = "drone_sim";
     if (loadConfig(package_name, "drone_params.txt", params))
     {
@@ -125,14 +161,37 @@ namespace gazebo
       this->robot_namespace_ = "";
 
       link_name = "base_link";
-      topic_name_ = "cmd_vel_three";
-      this->link_ = _model->GetLink(this->link_name);
+      this->base_link_ = _model->GetLink(this->link_name);
 
-      if (!this->link_)
+      link_name = "prop1";
+      this->prop_link1_ = _model->GetLink(this->link_name);
+
+      link_name = "prop2";
+      this->prop_link2_ = _model->GetLink(this->link_name);
+
+      link_name = "prop3";
+      this->prop_link3_ = _model->GetLink(this->link_name);
+
+      link_name = "prop4";
+      this->prop_link4_ = _model->GetLink(this->link_name);
+
+      if (!this->base_link_)
       {
-        ROS_FATAL_NAMED("force", "gazebo_ros_force plugin error: link named: %s does not exist\n",this->link_name.c_str());
+        ROS_FATAL_NAMED("force", "gazebo_ros_force plugin error: link named: base does not exist\n");
         return;
       }
+
+      if (!this->prop_link1_)
+      {
+        ROS_FATAL_NAMED("force", "gazebo_ros_force plugin error: link named: props does not exist\n");
+        return;
+      }
+
+
+
+
+
+      topic_name_ = "cmd_vel_three";
 
       if (!ros::isInitialized())
       {
@@ -164,10 +223,38 @@ namespace gazebo
     IGN_PROFILE_BEGIN("fill ROS message");
   #endif
     this->lock_.lock();
+
     ignition::math::Vector3d force(this->wrench_msg_.force.x,this->wrench_msg_.force.y,this->wrench_msg_.force.z);
     ignition::math::Vector3d torque(this->wrench_msg_.torque.x,this->wrench_msg_.torque.y,this->wrench_msg_.torque.z);
-    this->link_->AddForce(force);
-    this->link_->AddTorque(torque);
+    this->base_link_->AddForce(force);
+    this->base_link_->AddTorque(torque);
+
+{
+    ignition::math::Vector3d force(this->wrench_msg_1.force.x,this->wrench_msg_1.force.y,this->wrench_msg_1.force.z);
+    ignition::math::Vector3d torque(this->wrench_msg_1.torque.x,this->wrench_msg_1.torque.y,this->wrench_msg_1.torque.z);
+    this->base_link_->AddForce(force);
+    this->base_link_->AddTorque(torque);
+}
+{
+    ignition::math::Vector3d force(this->wrench_msg_2.force.x,this->wrench_msg_2.force.y,this->wrench_msg_2.force.z);
+    ignition::math::Vector3d torque(this->wrench_msg_2.torque.x,this->wrench_msg_2.torque.y,this->wrench_msg_2.torque.z);
+    this->base_link_->AddForce(force);
+    this->base_link_->AddTorque(torque);
+}
+{
+    ignition::math::Vector3d force(this->wrench_msg_3.force.x,this->wrench_msg_3.force.y,this->wrench_msg_3.force.z);
+    ignition::math::Vector3d torque(this->wrench_msg_3.torque.x,this->wrench_msg_3.torque.y,this->wrench_msg_3.torque.z);
+    this->base_link_->AddForce(force);
+    this->base_link_->AddTorque(torque);
+}
+{
+    ignition::math::Vector3d force(this->wrench_msg_4.force.x,this->wrench_msg_4.force.y,this->wrench_msg_4.force.z);
+    ignition::math::Vector3d torque(this->wrench_msg_4.torque.x,this->wrench_msg_4.torque.y,this->wrench_msg_4.torque.z);
+    this->base_link_->AddForce(force);
+    this->base_link_->AddTorque(torque);
+}
+
+
     this->lock_.unlock();
   #ifdef ENABLE_PROFILER
     IGN_PROFILE_END();

@@ -226,32 +226,32 @@ namespace gazebo
 
     ignition::math::Vector3d force(this->wrench_msg_.force.x,this->wrench_msg_.force.y,this->wrench_msg_.force.z);
     ignition::math::Vector3d torque(this->wrench_msg_.torque.x,this->wrench_msg_.torque.y,this->wrench_msg_.torque.z);
-    this->base_link_->AddForce(force);
-    this->base_link_->AddTorque(torque);
+    this->base_link_->AddRelativeForce(force);
+    this->base_link_->AddRelativeTorque(torque);
 
 {
     ignition::math::Vector3d force(this->wrench_msg_1.force.x,this->wrench_msg_1.force.y,this->wrench_msg_1.force.z);
     ignition::math::Vector3d torque(this->wrench_msg_1.torque.x,this->wrench_msg_1.torque.y,this->wrench_msg_1.torque.z);
-    this->base_link_->AddForce(force);
-    this->base_link_->AddTorque(torque);
+    this->base_link_->AddRelativeForce(force);
+    this->base_link_->AddRelativeTorque(torque);
 }
 {
     ignition::math::Vector3d force(this->wrench_msg_2.force.x,this->wrench_msg_2.force.y,this->wrench_msg_2.force.z);
     ignition::math::Vector3d torque(this->wrench_msg_2.torque.x,this->wrench_msg_2.torque.y,this->wrench_msg_2.torque.z);
-    this->base_link_->AddForce(force);
-    this->base_link_->AddTorque(torque);
+    this->base_link_->AddRelativeForce(force);
+    this->base_link_->AddRelativeTorque(torque);
 }
 {
     ignition::math::Vector3d force(this->wrench_msg_3.force.x,this->wrench_msg_3.force.y,this->wrench_msg_3.force.z);
     ignition::math::Vector3d torque(this->wrench_msg_3.torque.x,this->wrench_msg_3.torque.y,this->wrench_msg_3.torque.z);
-    this->base_link_->AddForce(force);
-    this->base_link_->AddTorque(torque);
+    this->base_link_->AddRelativeForce(force);
+    this->base_link_->AddRelativeTorque(torque);
 }
 {
     ignition::math::Vector3d force(this->wrench_msg_4.force.x,this->wrench_msg_4.force.y,this->wrench_msg_4.force.z);
     ignition::math::Vector3d torque(this->wrench_msg_4.torque.x,this->wrench_msg_4.torque.y,this->wrench_msg_4.torque.z);
-    this->base_link_->AddForce(force);
-    this->base_link_->AddTorque(torque);
+    this->base_link_->AddRelativeForce(force);
+    this->base_link_->AddRelativeTorque(torque);
 }
 
 

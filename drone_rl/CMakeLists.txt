@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(drone_control)
+project(drone_rl)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,14 +8,12 @@ project(drone_control)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  gazebo_msgs
-  message_runtime  REQUIRED
   drone_msgs
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -70,7 +68,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
+#   drone_msgs
 # )
 
 ################################################
@@ -103,7 +101,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS message_runtime drone_msgs
+#  INCLUDE_DIRS include
+#  LIBRARIES drone_rl
+#  CATKIN_DEPENDS drone_msgs
+#  DEPENDS system_lib
 )
 
 ###########
@@ -114,12 +115,12 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-# ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/drone_control.cpp
+#   src/${PROJECT_NAME}/drone_rl.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -130,7 +131,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/drone_control_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/drone_rl_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -194,28 +195,10 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_drone_control.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_drone_rl.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-
-include_directories(${PROJECT_SOURCE_DIR}/include)
-
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
-find_package(GTest REQUIRED)
-
-
-include_directories(${catkin_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS})
-
-add_executable(hover src/hover.cpp)
-target_link_libraries(hover ${catkin_LIBRARIES})
-add_dependencies(hover drone_msgs_generate_messages_cpp)
-
-catkin_add_gtest(drone_dynamics_test tests/test_dynamics.cpp src/utils.cpp)
-target_link_libraries(drone_dynamics_test ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
-
-

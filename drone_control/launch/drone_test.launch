@@ -1,0 +1,3 @@
+<launch>
+    <node name="drone_config_test" pkg="drone_control" type="drone_dynamics_test" />
+</launch>

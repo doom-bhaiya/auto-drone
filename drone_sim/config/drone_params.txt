@@ -2,4 +2,4 @@ k1=0.000001
 k2=0.0000001
 m=1.2004
 Ip=0.03
-length_of_prop=0.105
+length_of_prop=0.1484

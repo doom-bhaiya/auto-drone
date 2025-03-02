@@ -39,6 +39,9 @@ class Drone{
     public:
     
         void prop_to_motion(Eigen::Vector4d prop_speeds, float dt);
+        Eigen::Vector4d inverse_dynamics(
+            const Eigen::Vector3d& desired_linear_acceleration,
+            const Eigen::Vector3d& desired_angular_acceleration);
     };
     
     #endif

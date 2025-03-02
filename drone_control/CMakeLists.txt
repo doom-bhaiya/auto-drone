@@ -218,4 +218,7 @@ add_dependencies(hover drone_msgs_generate_messages_cpp)
 catkin_add_gtest(drone_dynamics_test tests/test_dynamics.cpp src/utils.cpp)
 target_link_libraries(drone_dynamics_test ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
 
+catkin_add_gtest(drone_inverse_dynamics_test tests/test_inverse_dynamics.cpp src/utils.cpp)
+target_link_libraries(drone_inverse_dynamics_test ${catkin_LIBRARIES} ${GTEST_LIBRARIES})
+
 

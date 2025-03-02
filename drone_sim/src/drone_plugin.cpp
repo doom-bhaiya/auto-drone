@@ -96,6 +96,11 @@ namespace gazebo
     double thrust_coefficient;
 
     std::string link_name; 
+    std::string link_name_prop1;
+    std::string link_name_prop2;
+    std::string link_name_prop3;
+    std::string link_name_prop4;
+
     std::string topic_name_;
 
     ConfigParams params;
@@ -114,24 +119,24 @@ namespace gazebo
 
       this->wrench_msg_1.force.x = 0;
       this->wrench_msg_1.force.y = 0;
-      this->wrench_msg_1.force.z = params.k1 * (_msg->prop4 * _msg->prop4);
+      this->wrench_msg_1.force.z = params.k1 * (_msg->prop1 * _msg->prop1);
       this->wrench_msg_1.torque.x = 0;
       this->wrench_msg_1.torque.y = 0;
-      this->wrench_msg_1.torque.z = 
+      this->wrench_msg_1.torque.z = 0;
 
       this->wrench_msg_2.force.x = 0;
       this->wrench_msg_2.force.y = 0;
-      this->wrench_msg_2.force.z = params.k1 * (_msg->prop4 * _msg->prop4);
+      this->wrench_msg_2.force.z = params.k1 * (_msg->prop2 * _msg->prop2);
       this->wrench_msg_2.torque.x = 0;
       this->wrench_msg_2.torque.y = 0;
-      this->wrench_msg_2.torque.z = 
+      this->wrench_msg_2.torque.z = 0;
 
       this->wrench_msg_3.force.x = 0;
       this->wrench_msg_3.force.y = 0;
-      this->wrench_msg_3.force.z = params.k1 * (_msg->prop4 * _msg->prop4);
+      this->wrench_msg_3.force.z = params.k1 * (_msg->prop3 * _msg->prop3);
       this->wrench_msg_3.torque.x = 0;
       this->wrench_msg_3.torque.y = 0;
-      this->wrench_msg_3.torque.z = 
+      this->wrench_msg_3.torque.z = 0;
 
       this->wrench_msg_4.force.x = 0;
       this->wrench_msg_4.force.y = 0;
@@ -163,17 +168,17 @@ namespace gazebo
       link_name = "base_link";
       this->base_link_ = _model->GetLink(this->link_name);
 
-      link_name = "prop1";
-      this->prop_link1_ = _model->GetLink(this->link_name);
+      link_name_prop1 = "prop1";
+      this->prop_link1_ = _model->GetLink(this->link_name_prop1);
 
-      link_name = "prop2";
-      this->prop_link2_ = _model->GetLink(this->link_name);
+      link_name_prop2 = "prop2";
+      this->prop_link2_ = _model->GetLink(this->link_name_prop2);
 
-      link_name = "prop3";
-      this->prop_link3_ = _model->GetLink(this->link_name);
+      link_name_prop3 = "prop3";
+      this->prop_link3_ = _model->GetLink(this->link_name_prop3);
 
-      link_name = "prop4";
-      this->prop_link4_ = _model->GetLink(this->link_name);
+      link_name_prop4 = "prop4";
+      this->prop_link4_ = _model->GetLink(this->link_name_prop4);
 
       if (!this->base_link_)
       {
@@ -224,34 +229,24 @@ namespace gazebo
   #endif
     this->lock_.lock();
 
-    ignition::math::Vector3d force(this->wrench_msg_.force.x,this->wrench_msg_.force.y,this->wrench_msg_.force.z);
     ignition::math::Vector3d torque(this->wrench_msg_.torque.x,this->wrench_msg_.torque.y,this->wrench_msg_.torque.z);
-    this->base_link_->AddRelativeForce(force);
     this->base_link_->AddRelativeTorque(torque);
 
 {
     ignition::math::Vector3d force(this->wrench_msg_1.force.x,this->wrench_msg_1.force.y,this->wrench_msg_1.force.z);
-    ignition::math::Vector3d torque(this->wrench_msg_1.torque.x,this->wrench_msg_1.torque.y,this->wrench_msg_1.torque.z);
-    this->base_link_->AddRelativeForce(force);
-    this->base_link_->AddRelativeTorque(torque);
+    this->prop_link1_->AddRelativeForce(force);
 }
 {
     ignition::math::Vector3d force(this->wrench_msg_2.force.x,this->wrench_msg_2.force.y,this->wrench_msg_2.force.z);
-    ignition::math::Vector3d torque(this->wrench_msg_2.torque.x,this->wrench_msg_2.torque.y,this->wrench_msg_2.torque.z);
-    this->base_link_->AddRelativeForce(force);
-    this->base_link_->AddRelativeTorque(torque);
+    this->prop_link2_->AddRelativeForce(force);
 }
 {
     ignition::math::Vector3d force(this->wrench_msg_3.force.x,this->wrench_msg_3.force.y,this->wrench_msg_3.force.z);
-    ignition::math::Vector3d torque(this->wrench_msg_3.torque.x,this->wrench_msg_3.torque.y,this->wrench_msg_3.torque.z);
-    this->base_link_->AddRelativeForce(force);
-    this->base_link_->AddRelativeTorque(torque);
+    this->prop_link3_->AddRelativeForce(force);
 }
 {
     ignition::math::Vector3d force(this->wrench_msg_4.force.x,this->wrench_msg_4.force.y,this->wrench_msg_4.force.z);
-    ignition::math::Vector3d torque(this->wrench_msg_4.torque.x,this->wrench_msg_4.torque.y,this->wrench_msg_4.torque.z);
-    this->base_link_->AddRelativeForce(force);
-    this->base_link_->AddRelativeTorque(torque);
+    this->prop_link4_->AddRelativeForce(force);
 }
 
 

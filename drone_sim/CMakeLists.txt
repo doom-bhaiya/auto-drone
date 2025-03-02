@@ -223,5 +223,5 @@ add_library(drone_thrust_plugin SHARED src/drone_plugin.cpp)
 target_link_libraries(drone_thrust_plugin ${GAZEBO_LIBRARIES}  ${roscpp_LIBRARIES})
 add_dependencies(drone_thrust_plugin drone_msgs_generate_messages_cpp)
 
-add_executable(drone_plugin_exec src/drone_plugin_exec.cpp)
-target_link_libraries(drone_plugin_exec ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+add_executable(param_loader src/param_loader.cpp)
+target_link_libraries(param_loader ${catkin_LIBRARIES})

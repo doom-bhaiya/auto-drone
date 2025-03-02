@@ -8,9 +8,13 @@
     <arg name="paused" value="true"/>
   </include>
 
+  <node pkg="drone_sim" type="param_loader" name="param_loader">
+      <param name="param_file_path" value="$(find drone_sim)/config/drone_params.txt"/>
+  </node>
+
   <!-- Spawn the robot model in Gazebo -->
   <node name="spawn_model" pkg="gazebo_ros" type="spawn_model" output="screen"
-        args="-file $(find drone_sim)/urdf/drone.urdf -urdf -model my_robot"/>
+        args="-file $(find drone_sim)/urdf/drone.urdf -urdf -model my_robot -z 0.1"/>
 
 
 </launch>

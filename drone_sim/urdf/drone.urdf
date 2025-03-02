@@ -17,7 +17,7 @@
     </collision>
 
     <inertial>
-      <mass value="1.0"/>
+      <mass value="1.2"/>
       <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
     </inertial>
   </link>
@@ -25,7 +25,7 @@
   <!-- Propeller 1 -->
   <link name="prop1">
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.0001"/>
       <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
     </inertial>
 
@@ -46,7 +46,7 @@
   <!-- Propeller 2 -->
   <link name="prop2">
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.0001"/>
       <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
     </inertial>
 
@@ -67,7 +67,7 @@
   <!-- Propeller 3 -->
   <link name="prop3">
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.0001"/>
       <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
     </inertial>
 
@@ -88,7 +88,7 @@
   <!-- Propeller 4 -->
   <link name="prop4">
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.0001"/>
       <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
     </inertial>
 

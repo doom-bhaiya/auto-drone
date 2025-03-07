@@ -6,6 +6,8 @@ from gazebo_msgs.msg import ModelStates
 from tf.transformations import euler_from_quaternion
 import numpy as np
 
+from utils import calculate_distance_cost
+
 class Environment:
 
     def __init__(self, sub_topic, pub_topic):
@@ -16,6 +18,11 @@ class Environment:
 
         self.pub = rospy.Publisher(pub_topic, PropellerVelocity, queue_size=10)
         rospy.loginfo(f"Publishing to {pub_topic}")
+
+        self.drone_name = "my_robot"
+
+        self.prev_state = np.zeros(12)
+        self.current_state = np.zeros(12)
 
     def reset_environment(self):
 
@@ -28,31 +35,56 @@ class Environment:
             rospy.logerr("Service call failed: %s" % e)
 
     def callback(self, msg):
-        drone_name = "my_robot"  # Change this to match your drone's name in Gazebo
         try:
-            index = msg.name.index(drone_name)  # Get index of the drone
-            pos = msg.pose[index].position
-            ori = msg.pose[index].orientation
-            
-            # Convert quaternion to Euler angles
-            euler = euler_from_quaternion([ori.x, ori.y, ori.z, ori.w])
-            theta, phi, rho = euler  # Roll, Pitch, Yaw
+            index = msg.name.index(self.drone_name)
 
-            rospy.loginfo(f"Drone Position: x={pos.x}, y={pos.y}, z={pos.z}")
-            rospy.loginfo(f"Drone Orientation: theta={theta}, phi={phi}, rho={rho}")
+            pos = msg.pose[index].position
+            self.current_state[0:3] = [pos.x, pos.y, pos.z]
+
+            ori = msg.pose[index].orientation
+            roll, pitch, yaw = euler_from_quaternion([ori.x, ori.y, ori.z, ori.w])
+            self.current_state[6:9] = [roll, pitch, yaw]
+
+            twist = msg.twist[index]
+            self.current_state[3:6] = [twist.linear.x, twist.linear.y, twist.linear.z]
+            self.current_state[9:12] = [twist.angular.x, twist.angular.y, twist.angular.z]
+
+            # rospy.loginfo(f"Drone State: {self.current_state}")
 
         except ValueError:
-            rospy.logwarn("Drone not found in model states!")
+            rospy.logwarn("Drone not found in model states")
 
-    def publish(self, prop_speeds: np.ndarray):
+    def step(self, prop_speeds: np.ndarray):
+
         if prop_speeds.shape != (4,):
             rospy.logerr("Input array must be of size 4")
             return
         
+        prop_speeds *= 1000
+        prop_speeds += 1000
+
         msg = PropellerVelocity()
-        msg.prop1 = prop_speeds[0]
-        msg.prop2 = prop_speeds[1]
-        msg.prop3 = prop_speeds[2]
-        msg.prop4 = prop_speeds[3]
+        msg.prop1 = int(prop_speeds[0])
+        msg.prop2 = int(prop_speeds[1])
+        msg.prop3 = int(prop_speeds[2])
+        msg.prop4 = int(prop_speeds[3])
         self.pub.publish(msg)
-        rospy.loginfo(f"Published propeller speeds: {prop_speeds}")
+
+        reward = calculate_distance_cost(self.goal_state, self.current_state) - calculate_distance_cost(self.goal_state, self.prev_state)
+        self.prev_state = self.current_state
+        
+        done = False
+        # rospy.loginfo(f"Published propeller speeds: {prop_speeds}")
+
+        if self.current_state[2] < 0.01:
+            done = True
+        print(self.current_state[2])
+
+        return reward, done
+
+    def get_state(self):
+        print(self.current_state.shape)
+        return self.current_state
+    
+    def set_goal_state(self, goal):
+        self.goal_state = goal

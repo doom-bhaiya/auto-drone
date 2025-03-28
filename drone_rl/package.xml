@@ -53,6 +53,9 @@
   <build_export_depend>drone_msgs</build_export_depend>
   <exec_depend>drone_msgs</exec_depend>
 
+  <depend>message_runtime</depend>
+
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

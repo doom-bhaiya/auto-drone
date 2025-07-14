@@ -1,23 +1,21 @@
 <?xml version="1.0"?>
-<robot name="my_robot">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my_robot">
 
-  <!-- Base Link -->
   <link name="base_link">
     <visual>
       <origin rpy="0 0 0.7854"/>
       <geometry>
-        <mesh filename="package://drone_sim/meshes/drone.dae" scale="0.001 0.001 0.001"/>
-        package://urdf_tutorial/meshes/l_finger.dae
+        <mesh filename="package://drone_sim/meshes/drone.stl" scale="0.001 0.001 0.001"/>
       </geometry>
-      <!-- <material name="Cyan">
+      <material name="Gray">
         <color rgba="1.0 1.0 1.0 1.0"/>
-      </material> -->
+      </material>
     </visual>
 
     <collision>
       <origin rpy="0 0 0.7854"/>
       <geometry>
-        <mesh filename="package://drone_sim/meshes/drone.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://drone_sim/meshes/drone.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
 
@@ -28,151 +26,70 @@
     </inertial>
   </link>
 
+  <xacro:macro name="motor" params="name x y">
+    <link name="${name}">
+      <inertial>
+        <origin rpy="0 0 0"/>
+        <mass value="0.0001"/>
+        <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
+      </inertial>
 
-  <link name="prop1">
-    <inertial>
-      <mass value="0.0001"/>
-      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
-    </inertial>
+      <visual>
+        <origin rpy="1.57 0 0" xyz="0 0 0.01"/>
+        <geometry>
+           <mesh filename="package://drone_sim/meshes/motor.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="Red">
+          <color rgba="1.0 0.0 0.0 1.0"/>
+        </material>
+      </visual>
+    </link>
 
-    <collision>
-      <geometry>
-        <sphere radius="0.001"/>
-      </geometry>
-    </collision>
+    <joint name="${name}_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="${name}"/>
+      <origin xyz="${x} ${y} 0.0" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>  
 
-    <visual>
-      <geometry>
-        <sphere radius="0.001"/>
-      </geometry>
-      <material name="Cyan">
-        <color rgba="1.0 1.0 1.0 1.0"/>
-      </material>
-    </visual>
-  </link>
+    <xacro:macro name="propeller" params="name motor">
+    <link name="${name}">
+      <inertial>
+        <origin rpy="0 0 0"/>
+        <mass value="0.000001"/>
+        <inertia ixx="0.00000001" ixy="0.0" ixz="0.0" iyy="0.00000001" iyz="0.0" izz="0.00000001"/>
+      </inertial>
 
+      <visual>
+        <origin rpy="1.57 0 0" xyz="0 0 0.0208"/>
+        <geometry>
+           <mesh filename="package://drone_sim/meshes/prop.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="Black">
+          <color rgba="0.8 0.8 0.8 1.0"/>
+        </material>
+      </visual>
+    </link>
 
-  <link name="prop2">
-    <inertial>
-      <mass value="0.0001"/>
-      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
-    </inertial>
+    <joint name="${name}_joint" type="continuous">
+      <parent link="${motor}"/>
+      <child link="${name}"/>
+      <origin xyz="0 0 0.0" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit effort="1.0" velocity="1000000"/>
+    </joint>
+  </xacro:macro>  
 
-    <collision>
-      <geometry>
-        <sphere radius="0.001"/>
-      </geometry>
-    </collision>
+  <xacro:motor name="motor1" x="0.13181" y="0"/>
+  <xacro:motor name="motor2" x="0" y="0.13181"/> 
+  <xacro:motor name="motor3" x="-0.13181" y="0"/>
+  <xacro:motor name="motor4" x="0" y="-0.13181"/> 
 
-    <visual>
-      <geometry>
-        <sphere radius="0.001"/>
-      </geometry>
-      <material name="Cyan">
-        <color rgba="1.0 1.0 1.0 1.0"/>
-      </material>
-    </visual>
-  </link>
+  <xacro:propeller name="prop1" motor="motor1"/>
+  <xacro:propeller name="prop2" motor="motor2"/> 
+  <xacro:propeller name="prop3" motor="motor3"/>
+  <xacro:propeller name="prop4" motor="motor4"/> 
 
-  <link name="prop3">
-    <inertial>
-      <mass value="0.0001"/>
-      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
-    </inertial>
-
-    <collision>
-      <geometry>
-        <sphere radius="0.001"/>
-      </geometry>
-    </collision>
-
-    <visual>
-      <geometry>
-        <sphere radius="0.001"/>
-      </geometry>
-      <material name="Cyan">
-        <color rgba="1.0 1.0 1.0 1.0"/>
-      </material>
-    </visual>
-  </link>
-
-  <link name="prop4">
-    <inertial>
-      <mass value="0.0001"/>
-      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
-    </inertial>
-
-    <collision>
-      <geometry>
-        <sphere radius="0.001"/>
-      </geometry>
-    </collision>
-
-    <visual>
-      <geometry>
-        <sphere radius="0.001"/>
-      </geometry>
-      <material name="Cyan">
-        <color rgba="1.0 1.0 1.0 1.0"/>
-      </material>
-    </visual>
-  </link>
-
-
-  <joint name="prop1_joint" type="revolute">
-    <parent link="base_link"/>
-    <child link="prop1"/>
-    <origin xyz="0 -0.13181 0.0" rpy="0 0 0"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="1.0" velocity="100"/>
-  </joint>
-
-
-  <joint name="prop2_joint" type="revolute">
-    <parent link="base_link"/>
-    <child link="prop2"/>
-    <origin xyz="0.13181 0 0.0" rpy="0 0 0"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="1.0" velocity="100"/>
-  </joint>
-
-
-  <joint name="prop3_joint" type="revolute">
-    <parent link="base_link"/>
-    <child link="prop3"/>
-    <origin xyz="-0 0.13181 0.0" rpy="0 0 0"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="1.0" velocity="100"/>
-  </joint>
-
-
-  <joint name="prop4_joint" type="revolute">
-    <parent link="base_link"/>
-    <child link="prop4"/>
-    <origin xyz="-0.13181 0. 0.0" rpy="0 0 0"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="1.0" velocity="100"/>
-  </joint>
-
-  <!-- Gazebo plugin -->
-  <gazebo>
-    <plugin name="drone_plugin" filename="libdrone_plugin.so"/>
-  </gazebo>
-
-  <!-- <gazebo>
-    <plugin name="diff_drive_controller" filename="libgazebo_ros_diff_drive.so">
-      <ros>
-        <namespace>/diff_bot</namespace>
-      </ros>
-      <left_joint>prop3_joint</left_joint>
-      <right_joint>prop4_joint</right_joint>
-      <wheel_separation>0.4</wheel_separation>
-      <wheel_diameter>0.15</wheel_diameter>
-      <topic>cmd_vel</topic>
-      <odometry_topic>odom</odometry_topic>
-      <odometry_frame>odom</odometry_frame>
-      <robot_base_frame>base_link</robot_base_frame>
-    </plugin>
-  </gazebo> -->
+  <xacro:include filename="$(find drone_sim)/urdf/gazebo.urdf"/>
 
 </robot>

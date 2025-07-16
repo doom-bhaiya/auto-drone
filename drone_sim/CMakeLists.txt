@@ -7,6 +7,7 @@ find_package(std_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(ros_gz_sim REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 
 install(DIRECTORY urdf
@@ -26,6 +27,10 @@ install(DIRECTORY worlds
 )
 
 install(DIRECTORY include
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}/
 )
 
@@ -53,7 +58,8 @@ set_property(TARGET DronePlugin PROPERTY CXX_STANDARD 17)
 
 target_link_libraries(DronePlugin
   PRIVATE ignition-plugin${IGN_PLUGIN_VER}::ignition-plugin${IGN_PLUGIN_VER}
-  PRIVATE ignition-gazebo6::core)
+  PRIVATE ignition-gazebo6::core
+  PRIVATE nlohmann_json::nlohmann_json)
 
 
 install(TARGETS

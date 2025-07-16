@@ -10,14 +10,15 @@
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
 #include <ignition/gazebo/EntityComponentManager.hh>
 
-
 #include <ignition/msgs/odometry.pb.h>
 #include <ignition/math/Pose3.hh>
 
 #include <ignition/gazebo/components/Pose.hh>
-// #include <ignition/gazebo/components/WorldPose.hh>
 #include <ignition/gazebo/components/LinearVelocity.hh>
 #include <ignition/gazebo/components/AngularVelocity.hh>
+
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
 
 using namespace gz;
 using namespace sim;
@@ -28,39 +29,23 @@ class ignition::gazebo::systems::DronePluginPrivate
 public:
 
   Entity base;
-
-  Entity prop1;
-  Entity prop2;
-  Entity prop3;
-  Entity prop4;
-
   Link link_base;
-  Link link_prop1;
-  Link link_prop2;
-  Link link_prop3;
-  Link link_prop4;
 
-  Entity prop1_joint;
-  Entity prop2_joint;
-  Entity prop3_joint;  
-  Entity prop4_joint;
+  Entity props[4];
+  Link link_props[4];
+  Entity props_joint[4];
 
-  double prop1_speed = 0;
-  double prop2_speed = 0;
-  double prop3_speed = 0;
-  double prop4_speed = 0;
+  double props_speed[4] = {0, 0, 0, 0};
 
   math::Vector3d force_base;
-  math::Vector3d force1;
-  math::Vector3d force2;
-  math::Vector3d force3;
-  math::Vector3d force4;
+
+  math::Vector3d force[4];
 
   math::Vector3d torque_base;
-  math::Vector3d torque;
+  math::Vector3d torque[4];
 
-  double kf = 1e-6;
-  double km = 1e-7;
+  double kf;
+  double km;
 
   bool enabled = false;
 
@@ -88,36 +73,28 @@ void DronePlugin::Configure(const Entity &_entity,
 
     this->dataPtr->model = Model(_entity);
 
-
     std::string base_link_name = _sdf->Get<std::string>("base_link_name");
-    std::string prop1_link_name = _sdf->Get<std::string>("prop_link_name1");
-    std::string prop2_link_name = _sdf->Get<std::string>("prop_link_name2");
-    std::string prop3_link_name = _sdf->Get<std::string>("prop_link_name3");
-    std::string prop4_link_name = _sdf->Get<std::string>("prop_link_name4");
+    
+    std::string prop_link_names[4] = {
+        _sdf->Get<std::string>("prop_link_name1"),
+        _sdf->Get<std::string>("prop_link_name2"),
+        _sdf->Get<std::string>("prop_link_name3"),
+        _sdf->Get<std::string>("prop_link_name4")
+    };
+
+    std::string prop_joint_names[4] = {
+        _sdf->Get<std::string>("prop1_joint"),
+        _sdf->Get<std::string>("prop2_joint"),
+        _sdf->Get<std::string>("prop3_joint"),
+        _sdf->Get<std::string>("prop4_joint")
+    };
 
     this->dataPtr->base = this->dataPtr->model.LinkByName(_ecm, base_link_name);
-    this->dataPtr->prop1 = this->dataPtr->model.LinkByName(_ecm, prop1_link_name);
-    this->dataPtr->prop2 = this->dataPtr->model.LinkByName(_ecm, prop2_link_name);
-    this->dataPtr->prop3 = this->dataPtr->model.LinkByName(_ecm, prop3_link_name);
-    this->dataPtr->prop4 = this->dataPtr->model.LinkByName(_ecm, prop4_link_name);
+    this->dataPtr->link_base = gz::sim::Link(this->dataPtr->base);
 
-    std::string prop1_joint_name = _sdf->Get<std::string>("prop1_joint");
-    std::string prop2_joint_name = _sdf->Get<std::string>("prop2_joint");
-    std::string prop3_joint_name = _sdf->Get<std::string>("prop3_joint");
-    std::string prop4_joint_name = _sdf->Get<std::string>("prop4_joint");
 
-    this->dataPtr->prop1_joint = this->dataPtr->model.JointByName(_ecm, prop1_joint_name);
-    this->dataPtr->prop2_joint = this->dataPtr->model.JointByName(_ecm, prop2_joint_name);
-    this->dataPtr->prop3_joint = this->dataPtr->model.JointByName(_ecm, prop3_joint_name);
-    this->dataPtr->prop4_joint = this->dataPtr->model.JointByName(_ecm, prop4_joint_name);
-
-    if (!this->dataPtr->base || 
-        !this->dataPtr->prop1 || !this->dataPtr->prop1_joint ||
-        !this->dataPtr->prop3 || !this->dataPtr->prop2_joint ||
-        !this->dataPtr->prop3 || !this->dataPtr->prop3_joint ||
-        !this->dataPtr->prop4 || !this->dataPtr->prop4_joint)
-    {
-      ignerr << "DronePlugin: Unable to find all required links or joints." << std::endl;
+    if (!this->dataPtr->base) {
+      ignerr << "DronePlugin: Unable to find the base link." << std::endl;
       return;
     }
 
@@ -126,18 +103,40 @@ void DronePlugin::Configure(const Entity &_entity,
                      components::LinearVelocity(math::Vector3d::Zero));
     _ecm.CreateComponent(this->dataPtr->base,
                      components::AngularVelocity(math::Vector3d::Zero));
+
+    for (int i = 0; i < 4; i++) {
+      this->dataPtr->props[i] = this->dataPtr->model.LinkByName(_ecm, prop_link_names[i]);
+      this->dataPtr->props_joint[i] = this->dataPtr->model.JointByName(_ecm, prop_joint_names[i]);
+
+      if (!this->dataPtr->props[i] || !this->dataPtr->props_joint[i]) {
+        ignerr << "DronePlugin: Unable to find all required links or joints." << std::endl;
+        return;
+      }
+      
+      _ecm.CreateComponent(this->dataPtr->props_joint[i], components::JointVelocityCmd({this->dataPtr->props_speed[i]}));
+      this->dataPtr->link_props[i] = gz::sim::Link(this->dataPtr->props[i]);
+
+
+    }
+
+
+    std::string config_file_path = _sdf->Get<std::string>("config_file_path");
+    std::ifstream file(config_file_path);
+    if (!file) {
+        std::cerr << "Could not open config.json\n";
+    }
+    else{
+      json config;
+      file >> config;
+
+      this->dataPtr->kf = config["k1"];
+      this->dataPtr->km = config["k2"];
+    }
+
+
                      
 
-    _ecm.CreateComponent(this->dataPtr->prop1_joint, components::JointVelocityCmd({this->dataPtr->prop1_speed}));
-    _ecm.CreateComponent(this->dataPtr->prop2_joint, components::JointVelocityCmd({this->dataPtr->prop2_speed}));
-    _ecm.CreateComponent(this->dataPtr->prop3_joint, components::JointVelocityCmd({this->dataPtr->prop3_speed}));
-    _ecm.CreateComponent(this->dataPtr->prop4_joint, components::JointVelocityCmd({this->dataPtr->prop4_speed}));
 
-    this->dataPtr->link_base = gz::sim::Link(this->dataPtr->base);
-    this->dataPtr->link_prop1 = gz::sim::Link(this->dataPtr->prop1);
-    this->dataPtr->link_prop2 = gz::sim::Link(this->dataPtr->prop2);
-    this->dataPtr->link_prop3 = gz::sim::Link(this->dataPtr->prop3);
-    this->dataPtr->link_prop4 = gz::sim::Link(this->dataPtr->prop4);
 
     {
       std::vector<std::string> enableTopics;
@@ -183,10 +182,10 @@ void DronePlugin::Configure(const Entity &_entity,
 void DronePlugin::PreUpdate(const UpdateInfo &_info,
   EntityComponentManager &_ecm)
 {
-  components::JointVelocityCmd({this->dataPtr->prop1_speed});
-  components::JointVelocityCmd({-1 * this->dataPtr->prop2_speed});
-  components::JointVelocityCmd({this->dataPtr->prop3_speed});
-  components::JointVelocityCmd({-1 * this->dataPtr->prop4_speed});  
+  components::JointVelocityCmd({this->dataPtr->props_speed[0]});
+  components::JointVelocityCmd({-1 * this->dataPtr->props_speed[1]});
+  components::JointVelocityCmd({this->dataPtr->props_speed[2]});
+  components::JointVelocityCmd({-1 * this->dataPtr->props_speed[3]});  
 
 
   auto baseLinkPose = _ecm.Component<gz::sim::components::WorldPose>(this->dataPtr->base);
@@ -195,32 +194,27 @@ void DronePlugin::PreUpdate(const UpdateInfo &_info,
   gz::math::Quaterniond rotWorldToBody = worldPose.Rot().Inverse();
 
 
-  this->dataPtr->link_base.AddWorldWrench(_ecm, rotWorldToBody * this->dataPtr->force_base, rotWorldToBody * this->dataPtr->torque_base);
-  this->dataPtr->link_prop1.AddWorldWrench(_ecm, rotWorldToBody * this->dataPtr->force1, rotWorldToBody * this->dataPtr->torque);
-  this->dataPtr->link_prop2.AddWorldWrench(_ecm, rotWorldToBody * this->dataPtr->force2, rotWorldToBody * this->dataPtr->torque);
-  this->dataPtr->link_prop3.AddWorldWrench(_ecm, rotWorldToBody * this->dataPtr->force3, rotWorldToBody * this->dataPtr->torque);
-  this->dataPtr->link_prop4.AddWorldWrench(_ecm, rotWorldToBody * this->dataPtr->force4, rotWorldToBody * this->dataPtr->torque);
+  this->dataPtr->link_base.AddWorldWrench(
+    _ecm,
+    rotWorldToBody.RotateVector(this->dataPtr->force_base),
+    rotWorldToBody.RotateVector(this->dataPtr->torque_base)
+  );
 
+  
+  for (int i = 0; i < 4; i++){
+
+    this->dataPtr->link_props[i].AddWorldWrench(
+      _ecm,
+      rotWorldToBody.RotateVector(this->dataPtr->force[i]),
+      rotWorldToBody.RotateVector(this->dataPtr->torque[i])
+    );
+  }
 
 }
 
 void DronePlugin::PostUpdate(const UpdateInfo &_info,
   const EntityComponentManager &_ecm)
 {
-
-  // ignition::msgs::Model modelMsg;
-  // modelMsg.set_name("my_robot");  // Required
-
-  // auto pose = modelMsg.mutable_pose();
-  // pose->mutable_position()->set_x(1.0);
-  // pose->mutable_position()->set_y(0.0);
-  // pose->mutable_position()->set_z(0.0);
-  // pose->mutable_orientation()->set_w(1.0);  // Identity quaternion
-
-  // this->dataPtr->odomPub.Publish(modelMsg);
-    // auto poseComp = _ecm.Component<components::WorldPose>(this->dataPtr->base);
-    // auto linVelComp = _ecm.Component<components::LinearVelocity>(this->dataPtr->base);
-    // auto angVelComp = _ecm.Component<components::AngularVelocity>(this->dataPtr->base);
 
     auto poseComp = _ecm.Component<gz::sim::components::WorldPose>(this->dataPtr->base);
     auto linVelComp = _ecm.Component<gz::sim::components::LinearVelocity>(this->dataPtr->base);
@@ -251,21 +245,18 @@ void DronePluginPrivate::OnEnable(const ignition::msgs::Boolean &_msg)
 
   if (!enabled) {
     ignmsg << "Drone props enabled." << std::endl;
-  } else {
+  } 
+  else {
 
     ignmsg << "Drone props disabled." << std::endl;
-    prop1_speed = 0;
-    prop2_speed = 0;
-    prop3_speed = 0;
-    prop4_speed = 0;
 
     force_base = {0, 0, 0};
-    force1 = {0, 0, 0};
-    force2 = {0, 0, 0};
-    force3 = {0, 0, 0};
-    force4 = {0, 0, 0};
-
     torque_base = {0, 0, 0};
+
+    for (int i = 0; i < 4; i++){
+      props_speed[i] = 0;
+      force[i] = {0, 0, 0};
+    }
   }
 }
 
@@ -273,21 +264,16 @@ void DronePluginPrivate::OnCommand(const ignition::msgs::Float_V &_msg)
 { 
 
   if (enabled){
-    prop1_speed = _msg.data(0);
-    prop2_speed = _msg.data(1);
-    prop3_speed = _msg.data(2);
-    prop4_speed = _msg.data(3);
-
+    for (int i = 0; i < 4; i++) {
+      props_speed[i] = _msg.data(i);
+      force[i] = {0, 0, props_speed[i] * props_speed[i] * kf};
+    }
     force_base = {0, 0, 0};
-    force1 = {0, 0, prop1_speed * prop1_speed * kf};
-    force2 = {0, 0, prop2_speed * prop2_speed * kf};
-    force3 = {0, 0, prop3_speed * prop3_speed * kf};
-    force4 = {0, 0, prop4_speed * prop4_speed * kf};
 
-    torque_base = {0, 0, (prop1_speed * prop1_speed -
-                          prop2_speed * prop2_speed +
-                          prop3_speed * prop3_speed -
-                          prop4_speed * prop4_speed) * km}; 
+    torque_base = {0, 0, (props_speed[0] * props_speed[0] -
+                          props_speed[1] * props_speed[1] +
+                          props_speed[2] * props_speed[2] -
+                          props_speed[3] * props_speed[3]) * km}; 
   }
   else {
     igndbg << "Drone props are disabled. Ignoring command." << std::endl;

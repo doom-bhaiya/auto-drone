@@ -21,6 +21,8 @@
       <enable_topic>switchOff</enable_topic>
       <odom_topic>DronePose</odom_topic>
 
+      <config_file_path>$(find drone_sim)/config/drone_params.json</config_file_path>
+
     </plugin>
 
   </gazebo>

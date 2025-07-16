@@ -9,7 +9,15 @@
 
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
 #include <ignition/gazebo/EntityComponentManager.hh>
-#include <gz/sim/components/Pose.hh>
+
+
+#include <ignition/msgs/odometry.pb.h>
+#include <ignition/math/Pose3.hh>
+
+#include <ignition/gazebo/components/Pose.hh>
+// #include <ignition/gazebo/components/WorldPose.hh>
+#include <ignition/gazebo/components/LinearVelocity.hh>
+#include <ignition/gazebo/components/AngularVelocity.hh>
 
 using namespace gz;
 using namespace sim;
@@ -57,6 +65,7 @@ public:
   bool enabled = false;
 
   transport::Node node;
+  transport::Node::Publisher odomPub;
 
   Model model{kNullEntity};
 
@@ -113,6 +122,11 @@ void DronePlugin::Configure(const Entity &_entity,
     }
 
     _ecm.CreateComponent(this->dataPtr->base, components::WorldPose());
+    _ecm.CreateComponent(this->dataPtr->base,
+                     components::LinearVelocity(math::Vector3d::Zero));
+    _ecm.CreateComponent(this->dataPtr->base,
+                     components::AngularVelocity(math::Vector3d::Zero));
+                     
 
     _ecm.CreateComponent(this->dataPtr->prop1_joint, components::JointVelocityCmd({this->dataPtr->prop1_speed}));
     _ecm.CreateComponent(this->dataPtr->prop2_joint, components::JointVelocityCmd({this->dataPtr->prop2_speed}));
@@ -155,6 +169,14 @@ void DronePlugin::Configure(const Entity &_entity,
           this->dataPtr.get());
     }
 
+    {
+      std::vector<std::string> odomTopics;
+      odomTopics.push_back(_sdf->Get<std::string>("odom_topic"));
+      auto odomTopic = validTopic(odomTopics);
+      this->dataPtr->odomPub = this->dataPtr->node.Advertise<ignition::msgs::Odometry>(
+          odomTopic);
+    }
+
 
 }
 
@@ -168,6 +190,7 @@ void DronePlugin::PreUpdate(const UpdateInfo &_info,
 
 
   auto baseLinkPose = _ecm.Component<gz::sim::components::WorldPose>(this->dataPtr->base);
+
   gz::math::Pose3d worldPose = baseLinkPose->Data();
   gz::math::Quaterniond rotWorldToBody = worldPose.Rot().Inverse();
 
@@ -184,6 +207,40 @@ void DronePlugin::PreUpdate(const UpdateInfo &_info,
 void DronePlugin::PostUpdate(const UpdateInfo &_info,
   const EntityComponentManager &_ecm)
 {
+
+  // ignition::msgs::Model modelMsg;
+  // modelMsg.set_name("my_robot");  // Required
+
+  // auto pose = modelMsg.mutable_pose();
+  // pose->mutable_position()->set_x(1.0);
+  // pose->mutable_position()->set_y(0.0);
+  // pose->mutable_position()->set_z(0.0);
+  // pose->mutable_orientation()->set_w(1.0);  // Identity quaternion
+
+  // this->dataPtr->odomPub.Publish(modelMsg);
+    // auto poseComp = _ecm.Component<components::WorldPose>(this->dataPtr->base);
+    // auto linVelComp = _ecm.Component<components::LinearVelocity>(this->dataPtr->base);
+    // auto angVelComp = _ecm.Component<components::AngularVelocity>(this->dataPtr->base);
+
+    auto poseComp = _ecm.Component<gz::sim::components::WorldPose>(this->dataPtr->base);
+    auto linVelComp = _ecm.Component<gz::sim::components::LinearVelocity>(this->dataPtr->base);
+    auto angVelComp = _ecm.Component<gz::sim::components::AngularVelocity>(this->dataPtr->base);
+
+    if (!linVelComp)
+    {
+      ignerr << "One or more components missing (pose/velocities).\n";
+      return;
+    }
+
+    ignition::msgs::Odometry odomMsg;
+    // odomMsg.set_name("Drone");
+    msgs::Set(odomMsg.mutable_pose(), poseComp->Data());
+
+    auto twist = odomMsg.mutable_twist();
+    msgs::Set(twist->mutable_linear(), linVelComp->Data());
+    msgs::Set(twist->mutable_angular(), angVelComp->Data());
+
+    this->dataPtr->odomPub.Publish(odomMsg);
 
 }
 

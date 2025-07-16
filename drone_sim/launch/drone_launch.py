@@ -9,8 +9,6 @@ from ament_index_python import get_package_share_directory
 import os
 import xacro
 
-
-
 def generate_launch_description():
 
     set_log_level = SetEnvironmentVariable('IGN_LOG_LEVEL', 'info')
@@ -73,7 +71,8 @@ def generate_launch_description():
 
     bridge_rule = [
         '/cmd_vel@ros_gz_interfaces/msg/Float32Array@ignition.msgs.Float_V',
-        '/switchOff@std_msgs/msg/Bool@ignition.msgs.Boolean'
+        '/switchOff@std_msgs/msg/Bool@ignition.msgs.Boolean',
+        '/DronePose@nav_msgs/msg/Odometry@ignition.msgs.Odometry'
     ]
 
     bridge_node = Node(

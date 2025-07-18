@@ -11,8 +11,22 @@ find_package(nav_msgs REQUIRED)
 find_package(ros_gz_interfaces REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-add_executable(altitude_control_pid src/altitude_control_PID.cpp)
+ament_export_include_directories(
+  include
+)
 
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+include_directories(include)
+
+# Export old-style CMake variables
+ament_export_include_directories(
+  include
+)
+
+add_executable(altitude_control_pid src/altitude_control_PID.cpp src/PID_controller.cpp)
 ament_target_dependencies(altitude_control_pid rclcpp ament_index_cpp nav_msgs ros_gz_interfaces)
 
 target_link_libraries(altitude_control_pid
@@ -24,5 +38,11 @@ install(TARGETS
   altitude_control_pid
   DESTINATION lib/${PROJECT_NAME}
 )
+
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+
 
 ament_package()

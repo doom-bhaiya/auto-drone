@@ -7,24 +7,21 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
+find_package(Eigen3 REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(ros_gz_interfaces REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 add_executable(altitude_control_pid src/altitude_control_PID.cpp)
-ament_target_dependencies(altitude_control_pid rclcpp std_msgs geometry_msgs)
+
+ament_target_dependencies(altitude_control_pid rclcpp ament_index_cpp nav_msgs ros_gz_interfaces)
+
+target_link_libraries(altitude_control_pid
+  Eigen3::Eigen
+  nlohmann_json::nlohmann_json
+)
 
 install(TARGETS
   altitude_control_pid

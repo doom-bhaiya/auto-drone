@@ -193,21 +193,25 @@ void DronePlugin::PreUpdate(const UpdateInfo &_info,
   gz::math::Pose3d worldPose = baseLinkPose->Data();
   gz::math::Quaterniond rotWorldToBody = worldPose.Rot().Inverse();
 
-
-  this->dataPtr->link_base.AddWorldWrench(
-    _ecm,
-    rotWorldToBody.RotateVector(this->dataPtr->force_base),
-    rotWorldToBody.RotateVector(this->dataPtr->torque_base)
-  );
+  if (!_info.paused){
+    this->dataPtr->link_base.AddWorldWrench(
+      _ecm,
+      rotWorldToBody.RotateVector(this->dataPtr->force_base),
+      rotWorldToBody.RotateVector(this->dataPtr->torque_base)
+    );
 
   
-  for (int i = 0; i < 4; i++){
+    for (int i = 0; i < 4; i++){
 
-    this->dataPtr->link_props[i].AddWorldWrench(
-      _ecm,
-      rotWorldToBody.RotateVector(this->dataPtr->force[i]),
-      rotWorldToBody.RotateVector(this->dataPtr->torque[i])
-    );
+      auto *velCmd = _ecm.Component<gz::sim::components::JointVelocityCmd>(this->dataPtr->props_joint[i]);
+      velCmd->Data()[0] = this->dataPtr->props_speed[i];
+
+      this->dataPtr->link_props[i].AddWorldWrench(
+        _ecm,
+        rotWorldToBody.RotateVector(this->dataPtr->force[i]),
+        rotWorldToBody.RotateVector(this->dataPtr->torque[i])
+      );
+    }
   }
 
 }

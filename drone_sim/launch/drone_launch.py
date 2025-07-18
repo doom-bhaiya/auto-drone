@@ -71,7 +71,7 @@ def generate_launch_description():
 
     bridge_rule = [
         '/cmd_vel@ros_gz_interfaces/msg/Float32Array@ignition.msgs.Float_V',
-        '/switchOff@std_msgs/msg/Bool@ignition.msgs.Boolean',
+        '/switchOn@std_msgs/msg/Bool@ignition.msgs.Boolean',
         '/DronePose@nav_msgs/msg/Odometry@ignition.msgs.Odometry'
     ]
 
@@ -83,12 +83,27 @@ def generate_launch_description():
         arguments = bridge_rule,
     )
 
+    switch_on_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("drone_sim"),
+                "launch",
+                "enable_drone_launch.py"
+            )
+        )
+    )
+
+    switch_on_launch_delayed = TimerAction(
+    period=4.0,  
+    actions=[switch_on_launch]
+    )
 
     ld.add_action(set_log_level)
     ld.add_action(robot_state_publisher_node)
     ld.add_action(gzserver_cmd)
     ld.add_action(spawner_delayed)
     ld.add_action(bridge_node)
+    ld.add_action(switch_on_launch_delayed)
     
 
     return ld

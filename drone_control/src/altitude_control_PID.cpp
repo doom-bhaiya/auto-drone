@@ -14,7 +14,6 @@ using json = nlohmann::json;
 #define CMD_TOPIC "/cmd_vel"
 #define GRAVITY 9.8
 
-
 double kf;
 double km;
 double mass;
@@ -34,17 +33,18 @@ public:
     }
 
 private:
+    double att_kp = 1;
+    double att_ki = 0;
+    double att_kd = 5;
 
-    double att_kp;
-    double att_ki;
-    double att_kd;
-
-    double goal = 0;
+    double goalPos = 10;
     double currentPos = 0;
 
     double errP = 0;
     double errI = 0;
     double errD = 0;
+
+    double errTotal = 0;
 
     double prevErr = 0;
     double IntegratedErr = 0;
@@ -55,36 +55,37 @@ private:
 
     double dt;
 
-
     void topic_callback(std::shared_ptr<const nav_msgs::msg::Odometry> msg)
-    {   
+    {
         curTime = clock.now();
-        dt = (prevTime - curTime).seconds();
-
+        dt = std::max((curTime - prevTime).seconds(), 1e-6);
 
         currentPos = msg->pose.pose.position.z;
 
-        errP = goal - currentPos;
-        errD = (prevErr - errP) / dt;
+        errP = goalPos - currentPos;
+        errD = (errP - prevErr) / dt;
         errI += errP * dt;
+        errTotal = errP * att_kp + errI * att_ki + errD * att_kd;
 
         ros_gz_interfaces::msg::Float32Array propSpeeds;
 
+        float thrust = (errTotal + GRAVITY) * mass;
+        float thrustPerProp = thrust / 4;
 
-        float weight = mass * GRAVITY;
-        float weightPerProp = weight / 4;
-
-        float propForce = sqrt(weightPerProp / kf);
+        float propForce = sqrt(std::max(thrustPerProp / kf, 0.0));
         // propForce = 1500;
-
-
 
         propSpeeds.data = {propForce, propForce, propForce, propForce};
         publisher_->publish(propSpeeds);
 
+        std::cout << "Proptional Error in Z : " << errP << std::endl;
+        std::cout << "Derivative Error in Z : " << errD << std::endl;
+        std::cout << "Integral Error in Z : " << errI << std::endl;
 
-        std::cout << "Attitude Error in Z : " << propForce << std::endl;
-        
+        std::cout << "Prop Speed : " << propForce << std::endl;
+
+        prevTime = curTime;
+        prevErr = errP;
     }
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_;
@@ -98,25 +99,22 @@ int main(int argc, char *argv[])
     std::string config_file_path = pkg_path + "/config/drone_params.json";
 
     std::ifstream file(config_file_path);
-    if (!file) {
+    if (!file)
+    {
         std::cerr << "Could not open config.json\n";
         return 1;
     }
-    else{
-      json config;
-      file >> config;
+    else
+    {
+        json config;
+        file >> config;
 
-      kf = config["k1"];
-      km = config["k2"];
-      mass = config["m"];
-      MomentOfInertia = config["Ip"];
-      propLength = config["length_of_prop"];
-
+        kf = config["k1"];
+        km = config["k2"];
+        mass = config["m"];
+        MomentOfInertia = config["Ip"];
+        propLength = config["length_of_prop"];
     }
-
-
-
-
 
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<DronePoseSubscriber>());

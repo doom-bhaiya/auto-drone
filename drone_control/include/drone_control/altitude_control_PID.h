@@ -1,7 +1,6 @@
 #ifndef ALTITUDE_CONTROL_PID_H
 #define ALTITUDE_CONTROL_PID_H
 
-
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -12,6 +11,9 @@
 #include <cmath>
 
 #include "drone_control/PID_controller.h"
+#include "drone_control/Drone.h"
+
+#define GRAVITY 9.8
 
 class DronePoseSubscriber : public rclcpp::Node
 {
@@ -20,10 +22,9 @@ public:
     void loadParams();
 
 private:
-    PIDController pidController;
 
-    double kp_, ki_, kd_;
-    double kf_, km_, mass_, I_, propLength_, MomentOfInertia_;
+    std::unique_ptr<Drone> drone_;
+    std::unique_ptr<PIDController> pidController_;
 
     double goalPos = 5;
     double currentPos = 0;

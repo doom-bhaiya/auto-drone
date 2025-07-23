@@ -5,7 +5,7 @@ using json = nlohmann::json;
 
 #define ODOM_TOPIC_NAME "DronePose"
 #define CMD_TOPIC "/cmd_vel"
-#define GRAVITY 9.8
+
 
 
 DronePoseSubscriber::DronePoseSubscriber() : Node("drone_pose_subscriber"){
@@ -14,55 +14,34 @@ DronePoseSubscriber::DronePoseSubscriber() : Node("drone_pose_subscriber"){
         ODOM_TOPIC_NAME, 10,
         std::bind(&DronePoseSubscriber::topic_callback, this, std::placeholders::_1));
 
+    RCLCPP_INFO_STREAM(this->get_logger(), "Subscribed to odom topic : " << ODOM_TOPIC_NAME);
+
     publisher_ = this->create_publisher<ros_gz_interfaces::msg::Float32Array>(CMD_TOPIC, 10);
+    RCLCPP_INFO_STREAM(this->get_logger(), "Publishing to cmdVel topic : " << CMD_TOPIC);
 
     prevTime = clock.now();
     curTime = clock.now();
 
     loadParams();
-    pidController.setParams(kp_, ki_, kd_);
 
 }
 
 void DronePoseSubscriber::loadParams() {
 
-    std::string pkg_path = ament_index_cpp::get_package_share_directory("drone_sim");
-    std::string config_file_path = pkg_path + "/config/drone_params.json";
+    RCLCPP_INFO_STREAM(this->get_logger(), "Loading Params ");
 
-    std::ifstream file(config_file_path);
-    if (!file)
-    {
-        std::cerr << "Could not open config.json\n";
-    }
-    else
-    {
-        json config;
-        file >> config;
+    std::string sim_pkg_path = ament_index_cpp::get_package_share_directory("drone_sim");
+    std::string control_pkg_path = ament_index_cpp::get_package_share_directory("drone_control");
+    
+    std::string drone_config_file_path = sim_pkg_path + "/config/drone_params.json";
+    std::string pid_config_file_path = control_pkg_path + "/config/PID_params.json";
 
-        kf_ = config["k1"];
-        km_ = config["k2"];
-        mass_ = config["m"];
-        MomentOfInertia_ = config["Ip"];
-        propLength_ = config["length_of_prop"];
-    }
+    drone_ = std::make_unique<Drone>(drone_config_file_path);
+    RCLCPP_INFO_STREAM(this->get_logger(), "Loaded Drone Params from " << drone_config_file_path);
 
-    pkg_path = ament_index_cpp::get_package_share_directory("drone_control");
-    config_file_path = pkg_path + "/config/PID_params.json";
+    pidController_ = std::make_unique<PIDController>(pid_config_file_path, "altitude");
+    RCLCPP_INFO_STREAM(this->get_logger(), "Loaded Altitude PID Params from " << pid_config_file_path);
 
-    std::ifstream paramsFile(config_file_path);
-    if (!paramsFile)
-    {
-        std::cerr << "Could not open config.json\n";
-    }
-    else
-    {
-        json config;
-        paramsFile >> config;
-
-        kp_ = config["altitude"]["kp"];
-        kd_ = config["altitude"]["kd"];
-        ki_ = config["altitude"]["ki"];
-    }
 }
 
 void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Odometry> msg)
@@ -71,17 +50,26 @@ void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Od
     dt = std::max((curTime - prevTime).seconds(), 1e-6);
     prevTime = curTime;
 
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "dt : " << dt);
+
     currentPos = msg->pose.pose.position.z;
-    double errTotal = pidController.compute(goalPos, currentPos, dt);
+    double errTotal = pidController_->compute(goalPos, currentPos, dt);
+    std::cout << errTotal << std::endl;
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "Total Error from Altitude PID : " << errTotal);
 
     ros_gz_interfaces::msg::Float32Array propSpeeds;
 
-    float thrust = (errTotal + GRAVITY) * mass_;
-    float thrustPerProp = thrust / 4;
+    double u1 = drone_->calculateThrust(errTotal);
+    double u2 = 0;
+    double u3 = 0;
+    double u4 = 0;
 
-    float propForce = sqrt(std::max(thrustPerProp / kf_, 0.0));
 
-    propSpeeds.data = {propForce, propForce, propForce, propForce};
+    Eigen::Vector4f propForce = drone_->calculatePropSpeeds(u1, u2, u3, u4);
+    RCLCPP_DEBUG_STREAM(this->get_logger(), "Publishing propSpeeds : " << propForce(0) << ", " << propForce(1) << ", " << 
+                                                                        propForce(2) << ", " << propForce(3));
+
+    propSpeeds.data = {propForce(0), propForce(1), propForce(2), propForce(3)};
     publisher_->publish(propSpeeds);
 }
 

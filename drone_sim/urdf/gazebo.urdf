@@ -20,6 +20,9 @@
       <enable_topic>switchOn</enable_topic>
       <odom_topic>DronePose</odom_topic>
 
+      <max_velocity>2500</max_velocity>
+      <max_acceleration>1000</max_acceleration>
+
       <config_file_path>$(find drone_sim)/config/drone_params.json</config_file_path>
 
     </plugin>

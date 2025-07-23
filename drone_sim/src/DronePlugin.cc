@@ -20,6 +20,11 @@
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
+// #include <iostream>
+#include <cmath>
+#include "spdlog/spdlog.h"
+#include <spdlog/sinks/basic_file_sink.h>
+
 using namespace gz;
 using namespace sim;
 using namespace systems;
@@ -36,6 +41,8 @@ public:
   Entity props_joint[4];
 
   double props_speed[4] = {0, 0, 0, 0};
+  double max_velocity;
+  double max_acceleration;
 
   math::Vector3d force_base;
 
@@ -69,6 +76,10 @@ void DronePlugin::Configure(const Entity &_entity,
     EntityComponentManager &_ecm,
     EventManager &/*_eventMgr*/){
 
+      auto logger = spdlog::basic_logger_mt("drone_plugin_logger", "drone_plugin.log");
+        logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v"); // optional, pretty
+        logger->set_level(spdlog::level::debug);
+
     ignmsg << "Loading DronePlugin";
 
     this->dataPtr->model = Model(_entity);
@@ -88,6 +99,9 @@ void DronePlugin::Configure(const Entity &_entity,
         _sdf->Get<std::string>("prop3_joint"),
         _sdf->Get<std::string>("prop4_joint")
     };
+
+    this->dataPtr->max_velocity = _sdf->Get<double>("max_velocity");
+    this->dataPtr->max_acceleration = _sdf->Get<double>("max_acceleration");
 
     this->dataPtr->base = this->dataPtr->model.LinkByName(_ecm, base_link_name);
     this->dataPtr->link_base = gz::sim::Link(this->dataPtr->base);
@@ -266,10 +280,38 @@ void DronePluginPrivate::OnEnable(const ignition::msgs::Boolean &_msg)
 
 void DronePluginPrivate::OnCommand(const ignition::msgs::Float_V &_msg)
 { 
+  if (_msg.data_size() < 4){
+    ignerr << "Less values are provided, Ignoring command" << std::endl;
+    return;
+  }
+  if (_msg.data_size() > 4){
+    ignerr << "More values are provided, Ignoring command" << std::endl;
+    return;
+  }
 
   if (enabled){
+
+    for (int i = 0; i < 4; i++){
+      if (std::isnan(_msg.data(i))){
+        ignerr << "Nan values are passed, ignoring the command " << std::endl;
+        return;
+      }
+    }
+
+
+
+
     for (int i = 0; i < 4; i++) {
       props_speed[i] = _msg.data(i);
+
+      if (props_speed[i] > max_velocity)  props_speed[i] = max_velocity;
+
+      if (props_speed[i] < 0) {
+
+        ignerr << "Negative speed is provided to one or more Props, Using 0 speeds for them" << std::endl;
+        props_speed[i] = 0;
+      }
+      
       force[i] = {0, 0, props_speed[i] * props_speed[i] * kf};
     }
     force_base = {0, 0, 0};

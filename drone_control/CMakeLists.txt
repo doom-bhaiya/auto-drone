@@ -12,6 +12,8 @@ find_package(ros_gz_interfaces REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(visualization_msgs REQUIRED)
 # find_package(geometry_msgs REQUIRED)
 
 ament_export_include_directories(
@@ -33,7 +35,10 @@ add_executable(altitude_control_pid src/altitude_control_PID.cpp src/PID_control
 ament_target_dependencies(altitude_control_pid rclcpp ament_index_cpp nav_msgs ros_gz_interfaces)
 
 add_executable(full_control_pid src/full_control_PID.cpp src/PID_controller.cpp src/Drone.cpp)
-ament_target_dependencies(full_control_pid rclcpp ament_index_cpp nav_msgs ros_gz_interfaces tf2 tf2_ros tf2_geometry_msgs geometry_msgs)
+ament_target_dependencies(full_control_pid rclcpp ament_index_cpp nav_msgs ros_gz_interfaces tf2 tf2_ros tf2_geometry_msgs geometry_msgs visualization_msgs)
+
+add_executable(odom_publisher src/odom_publisher.cpp)
+ament_target_dependencies(odom_publisher rclcpp tf2_ros nav_msgs)
 
 target_link_libraries(altitude_control_pid
   Eigen3::Eigen
@@ -50,6 +55,7 @@ target_link_libraries(full_control_pid
 install(TARGETS
   altitude_control_pid
   full_control_pid
+  odom_publisher
   DESTINATION lib/${PROJECT_NAME}
 )
 

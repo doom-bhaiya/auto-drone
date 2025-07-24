@@ -16,6 +16,7 @@
 #include "drone_control/PID_controller.h"
 #include "drone_control/Drone.h"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 #include "geometry_msgs/msg/point.hpp"
 
@@ -72,6 +73,14 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_;
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr goalSubscription_;
     rclcpp::Publisher<ros_gz_interfaces::msg::Float32Array>::SharedPtr publisher_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr markerArray_publisher_;
+
+    visualization_msgs::msg::MarkerArray markerArray_;
+
+    int markerNum_;
+    int curMarkerNum_;
+
+    
 };
 
 #endif // ALTITUDE_CONTROL_PID_H

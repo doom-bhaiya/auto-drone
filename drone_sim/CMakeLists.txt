@@ -35,6 +35,10 @@ install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}/
 )
 
+install(DIRECTORY rviz
+  DESTINATION share/${PROJECT_NAME}/
+)
+
 include_directories(include)
 
 # Export old-style CMake variables

@@ -6,6 +6,7 @@ using json = nlohmann::json;
 #define ODOM_TOPIC_NAME "DronePose"
 #define GOAL_TOPIC_NAME "Goal"
 #define CMD_TOPIC "/cmd_vel"
+#define MARKER_TOPIC_NAME "/visualization_marker_array"
 
 #define INNER_LOOP_FREQUENCY 100
 #define OUTER_LOOP_FREQUENCY 10
@@ -26,6 +27,9 @@ DronePoseSubscriber::DronePoseSubscriber() : Node("drone_pose_subscriber"){
 
     publisher_ = this->create_publisher<ros_gz_interfaces::msg::Float32Array>(CMD_TOPIC, 10);
     RCLCPP_INFO_STREAM(this->get_logger(), "Publishing to cmdVel topic : " << CMD_TOPIC);
+
+    markerArray_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(MARKER_TOPIC_NAME, rclcpp::QoS(10));
+    RCLCPP_INFO_STREAM(this->get_logger(), "Publishing to Marker topic : " << MARKER_TOPIC_NAME);
 
     prevTime = clock.now();
     curTime = clock.now();
@@ -60,6 +64,9 @@ void DronePoseSubscriber::loadParams() {
 
     yawPidController_ = std::make_unique<PIDController>(pid_config_file_path, "yaw");
 
+    markerNum_= 0;
+    curMarkerNum_ = 0;
+
 }
 
 void DronePoseSubscriber::goalTopicCallback(std::shared_ptr<const geometry_msgs::msg::Point> msg){
@@ -72,6 +79,30 @@ void DronePoseSubscriber::goalTopicCallback(std::shared_ptr<const geometry_msgs:
     goalPoints.push_back(goal);
     logger_->info("Received Goal: x = {}, y = {}, z = {}", x, y, z);
 
+    visualization_msgs::msg::Marker marker_;
+    marker_.header.frame_id = "odom"; 
+    marker_.header.stamp = this->get_clock()->now();
+    marker_.ns = "my_marker";
+    marker_.id = markerNum_;
+    marker_.type = visualization_msgs::msg::Marker::SPHERE;
+    marker_.action = visualization_msgs::msg::Marker::ADD;
+    marker_.pose.position.x = goal(0);
+    marker_.pose.position.y = goal(1);
+    marker_.pose.position.z = goal(2);
+    marker_.pose.orientation.w = 1.0;
+    marker_.scale.x = 0.02;
+    marker_.scale.y = 0.02;
+    marker_.scale.z = 0.02;
+    marker_.color.a = 1.0;  
+    marker_.color.r = 1.0;
+    marker_.color.g = 0.0;
+    marker_.color.b = 0.0;
+
+    markerArray_.markers.push_back(marker_);
+
+    markerArray_publisher_->publish(markerArray_);
+    markerNum_++;
+
 }
 
 void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Odometry> msg)
@@ -81,12 +112,27 @@ void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Od
     currentPos(2) = msg->pose.pose.position.z;
 
     if (goalPoints.size() == 0) goalPos = currentPos;
-    if (goalPos(0) - currentPos(0) < 0.1 &&
-        goalPos(1) - currentPos(1) < 0.1 &&
-        goalPos(2) - currentPos(2) < 0.1 &&
+    if (goalPos(0) - currentPos(0) < 0.25 &&
+        goalPos(1) - currentPos(1) < 0.25 &&
+        goalPos(2) - currentPos(2) < 0.25 &&
         goalPoints.size() > 1) {
         goalPos = goalPoints.front();
         goalPoints.erase(goalPoints.begin());
+
+        visualization_msgs::msg::MarkerArray marker_array;
+
+        visualization_msgs::msg::Marker delete_marker;
+        delete_marker.header.frame_id = "odom";
+        delete_marker.header.stamp = this->get_clock()->now();
+        delete_marker.ns = "multi_marker";
+        delete_marker.id = curMarkerNum_;  
+        delete_marker.action = visualization_msgs::msg::Marker::DELETE;
+
+        marker_array.markers.push_back(delete_marker);
+        markerArray_publisher_->publish(marker_array);
+
+        curMarkerNum_++;
+
     }
 
     lateralCounter_++;

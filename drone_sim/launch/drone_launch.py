@@ -33,12 +33,12 @@ def generate_launch_description():
 
 
     bot_pkg_path = get_package_share_directory("drone_sim")
-    bot_path = os.path.join(bot_pkg_path, "urdf", "drone.urdf")
+    bot_path = os.path.join(bot_pkg_path, "urdf", "drone.urdf.xacro")
     xacro_file_path = bot_path
     robot_description_config = xacro.process_file(xacro_file_path)
     robot_desc = robot_description_config.toxml()
 
-    params = {"robot_description": robot_desc, "use_sim_time": use_sim_time}
+    params = {"robot_description": robot_desc, "use_sim_time": use_sim_time, 'publish_fixed_joints': True}
 
     spawner_node = Node(
         package='ros_gz_sim',
@@ -59,14 +59,21 @@ def generate_launch_description():
     actions=[spawner_node]
     )
 
+    joint_state_publisher_node = Node(
+        package='joint_state_publisher',
+        executable='joint_state_publisher',
+        name='joint_state_publisher',
+        output='screen'
+    )
+
     robot_state_publisher_node = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         name='robot_state_publisher',
         output='screen',
         parameters=[params],
+        arguments=[bot_path]
     )
-
 
 
     bridge_rule = [
@@ -93,17 +100,29 @@ def generate_launch_description():
         )
     )
 
+    rviz_path = os.path.join(get_package_share_directory('drone_sim'), 'rviz', 'rvizConfig.rviz')
+
+    rviz = Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d', rviz_path]  # optional
+        )
+
     switch_on_launch_delayed = TimerAction(
     period=4.0,  
     actions=[switch_on_launch]
     )
 
     ld.add_action(set_log_level)
-    ld.add_action(robot_state_publisher_node)
     ld.add_action(gzserver_cmd)
     ld.add_action(spawner_delayed)
     ld.add_action(bridge_node)
     ld.add_action(switch_on_launch_delayed)
+    ld.add_action(joint_state_publisher_node)
+    ld.add_action(robot_state_publisher_node)
+    ld.add_action(rviz)
     
 
     return ld

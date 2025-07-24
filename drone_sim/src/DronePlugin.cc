@@ -41,6 +41,7 @@ public:
   Entity props_joint[4];
 
   double props_speed[4] = {0, 0, 0, 0};
+  double props_position[4] = {0, 0, 0, 0};
   double max_velocity;
   double max_acceleration;
 
@@ -202,10 +203,10 @@ void DronePlugin::Configure(const Entity &_entity,
 void DronePlugin::PreUpdate(const UpdateInfo &_info,
   EntityComponentManager &_ecm)
 {
-  components::JointVelocityCmd({this->dataPtr->props_speed[0]});
-  components::JointVelocityCmd({-1 * this->dataPtr->props_speed[1]});
-  components::JointVelocityCmd({this->dataPtr->props_speed[2]});
-  components::JointVelocityCmd({-1 * this->dataPtr->props_speed[3]});  
+  // components::JointVelocityCmd({this->dataPtr->props_speed[0]});
+  // components::JointVelocityCmd({-1 * this->dataPtr->props_speed[1]});
+  // components::JointVelocityCmd({this->dataPtr->props_speed[2]});
+  // components::JointVelocityCmd({-1 * this->dataPtr->props_speed[3]});  
 
 
   auto baseLinkPose = _ecm.Component<gz::sim::components::WorldPose>(this->dataPtr->base);
@@ -224,7 +225,10 @@ void DronePlugin::PreUpdate(const UpdateInfo &_info,
     for (int i = 0; i < 4; i++){
 
       auto *velCmd = _ecm.Component<gz::sim::components::JointVelocityCmd>(this->dataPtr->props_joint[i]);
-      velCmd->Data()[0] = this->dataPtr->props_speed[i];
+      if (i % 2)
+        velCmd->Data()[0] = this->dataPtr->props_speed[i];
+      else
+        velCmd->Data()[0] = -1 * this->dataPtr->props_speed[i];
 
       this->dataPtr->link_props[i].AddWorldWrench(
         _ecm,
@@ -254,9 +258,27 @@ void DronePlugin::PostUpdate(const UpdateInfo &_info,
     // odomMsg.set_name("Drone");
     msgs::Set(odomMsg.mutable_pose(), poseComp->Data());
 
+    ignition::msgs::Header* header = odomMsg.mutable_header();
+
+    auto simTimeNs = std::chrono::duration_cast<std::chrono::nanoseconds>(_info.simTime).count();
+    int32_t simTimeSec = static_cast<int32_t>(simTimeNs / 1'000'000'000);
+    int32_t simTimeNsec = static_cast<int32_t>(simTimeNs % 1'000'000'000);
+
+    header->mutable_stamp()->set_sec(simTimeSec);
+    header->mutable_stamp()->set_nsec(simTimeNsec);
+
+    auto* frameEntry = header->add_data();
+    frameEntry->set_key("frame_id");
+    frameEntry->add_value("odom");
+
+    auto* childFrameEntry = header->add_data();
+    childFrameEntry->set_key("child_frame_id");
+    childFrameEntry->add_value("base_link");
+
     auto twist = odomMsg.mutable_twist();
     msgs::Set(twist->mutable_linear(), linVelComp->Data());
     msgs::Set(twist->mutable_angular(), angVelComp->Data());
+
 
     this->dataPtr->odomPub.Publish(odomMsg);
 

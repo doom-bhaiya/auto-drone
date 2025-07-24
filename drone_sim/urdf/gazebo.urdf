@@ -22,24 +22,11 @@
 
       <max_velocity>2500</max_velocity>
       <max_acceleration>1000</max_acceleration>
+      <noise_std_dev>60</noise_std_dev>
 
       <config_file_path>$(find drone_sim)/config/drone_params.json</config_file_path>
 
     </plugin>
   </gazebo>
-
-  <!-- <gazebo reference="base_link">
-    <sensor name="imu_sensor" type="imu">
-      <update_rate>100</update_rate>
-      <always_on>true</always_on>
-      <topic>/imu</topic>
-      <imu>
-        <orientation_reference_frame>ENU</orientation_reference_frame>
-      </imu>
-
-    <plugin name="gz::sim::systems::Imu" filename="libImu.so"/>
-    </sensor>
-  </gazebo> -->
-
 
 </robot>

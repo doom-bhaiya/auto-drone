@@ -64,6 +64,9 @@ public:
   void OnEnable(const ignition::msgs::Boolean &_msg);
   void OnCommand(const ignition::msgs::Float_V &_msg);
 
+  std::default_random_engine randGen;
+  std::normal_distribution<double> noiseDist;
+
 };
 
 DronePlugin::DronePlugin()
@@ -103,6 +106,9 @@ void DronePlugin::Configure(const Entity &_entity,
     this->dataPtr->max_velocity = _sdf->Get<double>("max_velocity");
     this->dataPtr->max_acceleration = _sdf->Get<double>("max_acceleration");
 
+    double randomNoiseStdDev = _sdf->Get<double>("noise_std_dev");
+    this->dataPtr->noiseDist = std::normal_distribution<double>(0.0, randomNoiseStdDev);
+    
     this->dataPtr->base = this->dataPtr->model.LinkByName(_ecm, base_link_name);
     this->dataPtr->link_base = gz::sim::Link(this->dataPtr->base);
 
@@ -302,9 +308,6 @@ void DronePluginPrivate::OnCommand(const ignition::msgs::Float_V &_msg)
 
 
     for (int i = 0; i < 4; i++) {
-      props_speed[i] = _msg.data(i);
-
-      if (props_speed[i] > max_velocity)  props_speed[i] = max_velocity;
 
       if (props_speed[i] < 0) {
 
@@ -312,6 +315,11 @@ void DronePluginPrivate::OnCommand(const ignition::msgs::Float_V &_msg)
         props_speed[i] = 0;
       }
       
+
+      double noisy_speed = _msg.data(i) + noiseDist(randGen);
+      props_speed[i] = std::max(0.0, noisy_speed);
+
+      if (props_speed[i] > max_velocity)  props_speed[i] = max_velocity;
       force[i] = {0, 0, props_speed[i] * props_speed[i] * kf};
     }
     force_base = {0, 0, 0};

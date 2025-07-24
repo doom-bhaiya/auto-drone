@@ -4,20 +4,12 @@
 using json = nlohmann::json;
 
 #define ODOM_TOPIC_NAME "DronePose"
+#define GOAL_TOPIC_NAME "Goal"
 #define CMD_TOPIC "/cmd_vel"
 
 #define INNER_LOOP_FREQUENCY 100
 #define OUTER_LOOP_FREQUENCY 10
 #define SKIPS_FOR_OUTER_LOOP 10
-
-double wrapAngle(double angle) {
-    while (angle > M_PI)
-        angle -= 2.0 * M_PI;
-    while (angle < -M_PI)
-        angle += 2.0 * M_PI;
-    return angle;
-}
-
 
 
 DronePoseSubscriber::DronePoseSubscriber() : Node("drone_pose_subscriber"){
@@ -25,6 +17,10 @@ DronePoseSubscriber::DronePoseSubscriber() : Node("drone_pose_subscriber"){
     subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
         ODOM_TOPIC_NAME, 10,
         std::bind(&DronePoseSubscriber::topic_callback, this, std::placeholders::_1));
+
+    goalSubscription_ = this->create_subscription<geometry_msgs::msg::Point>(
+        GOAL_TOPIC_NAME, 10,
+        std::bind(&DronePoseSubscriber::goalTopicCallback, this, std::placeholders::_1));
 
     RCLCPP_INFO_STREAM(this->get_logger(), "Subscribed to odom topic : " << ODOM_TOPIC_NAME);
 
@@ -35,9 +31,6 @@ DronePoseSubscriber::DronePoseSubscriber() : Node("drone_pose_subscriber"){
     curTime = clock.now();
 
     loadParams();
-
-    goalPos << 5, -2, 5;
-    currentPos << 0, 0, 0;
 
     prevVelocity = 0;
 
@@ -56,7 +49,6 @@ void DronePoseSubscriber::loadParams() {
     std::string pid_config_file_path = control_pkg_path + "/config/PID_params.json";
 
     drone_ = std::make_unique<Drone>(drone_config_file_path);
-    RCLCPP_INFO_STREAM(this->get_logger(), "Loaded Drone Params from " << drone_config_file_path);
 
     AltitudePidController_ = std::make_unique<PIDController>(pid_config_file_path, "altitude");
 
@@ -68,20 +60,37 @@ void DronePoseSubscriber::loadParams() {
 
     yawPidController_ = std::make_unique<PIDController>(pid_config_file_path, "yaw");
 
-    RCLCPP_INFO_STREAM(this->get_logger(), "Loaded Altitude PID Params from " << pid_config_file_path);
+}
+
+void DronePoseSubscriber::goalTopicCallback(std::shared_ptr<const geometry_msgs::msg::Point> msg){
+
+    double x = msg->x;
+    double y = msg->y;
+    double z = msg->z;
+
+    Eigen::Vector3d goal = {x, y, z};
+    goalPoints.push_back(goal);
+    logger_->info("Received Goal: x = {}, y = {}, z = {}", x, y, z);
 
 }
 
 void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Odometry> msg)
-{   
-    lateralCounter_++;
-
+{  
     currentPos(0) = msg->pose.pose.position.x;
     currentPos(1) = msg->pose.pose.position.y;
     currentPos(2) = msg->pose.pose.position.z;
-    
 
-    RCLCPP_DEBUG_STREAM(this->get_logger(), "Current Position: " << currentPos.transpose());
+    if (goalPoints.size() == 0) goalPos = currentPos;
+    if (goalPos(0) - currentPos(0) < 0.1 &&
+        goalPos(1) - currentPos(1) < 0.1 &&
+        goalPos(2) - currentPos(2) < 0.1 &&
+        goalPoints.size() > 1) {
+        goalPos = goalPoints.front();
+        goalPoints.erase(goalPoints.begin());
+    }
+
+    lateralCounter_++;
+
 
 
     geometry_msgs::msg::Quaternion quat_msg = msg->pose.pose.orientation;
@@ -93,12 +102,6 @@ void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Od
 
     Eigen::Vector3d euler = {roll, pitch, yaw};
 
-    // Eigen::Quaterniond q(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, 
-    //                     msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
-    // Eigen::Vector3d euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
-
-    RCLCPP_DEBUG_STREAM(this->get_logger(), "Current Orientation: " << euler);
-
     drone_->setOrientation(euler);
 
 
@@ -109,8 +112,6 @@ void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Od
     double curAcceleration = (curVelocity - prevVelocity) / dt;
     prevVelocity = curVelocity;
     prevTime = curTime;
-
-    RCLCPP_DEBUG_STREAM(this->get_logger(), "dt : " << dt);
 
     if (lateralCounter_ == SKIPS_FOR_OUTER_LOOP){
         errLateralX = LateralXPidController_->compute(goalPos(0), currentPos(0), dt * SKIPS_FOR_OUTER_LOOP);
@@ -124,16 +125,12 @@ void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Od
 
     double errYaw = yawPidController_->compute(0, euler(2), dt);
 
-    logger_->info("Goal \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", goalPos(0), goalPos(1), goalPos(2));
-    logger_->info("Cur \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", currentPos(0), currentPos(1), currentPos(2));
-    logger_->info("Error \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", errLateralX, errLateralY, errAltitude);
+    logger_->debug("Goal \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", goalPos(0), goalPos(1), goalPos(2));
+    logger_->debug("Cur \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", currentPos(0), currentPos(1), currentPos(2));
+    logger_->debug("Error \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", errLateralX, errLateralY, errAltitude);
 
-    logger_->info("Cur Orientation \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", euler(0), euler(1), euler(2));
-    logger_->info("Error Orientation \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", errAngularY, errAngularX, errYaw);
-
-
-    RCLCPP_DEBUG_STREAM(this->get_logger(), "Total Error from Altitude PID : " << errAltitude);
-    RCLCPP_DEBUG_STREAM(this->get_logger(), "Total Error from Lateral X PID : " << errLateralX);
+    logger_->debug("Cur Orientation \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", euler(0), euler(1), euler(2));
+    logger_->debug("Error Orientation \tX : {:.3f},\tY : {:.3f},\tZ : {:.3f}", errAngularY, errAngularX, errYaw);
 
     ros_gz_interfaces::msg::Float32Array propSpeeds;
 
@@ -149,9 +146,6 @@ void DronePoseSubscriber::topic_callback(std::shared_ptr<const nav_msgs::msg::Od
 
     logger_->info("U : {:.3f}, {:.3f}, {:.3f}, {:.3f} ", u1, u2, u3, u4);
     logger_->info("PropSpeeds : {:.0f}, {:.0f}, {:.0f}, {:.0f} ", propForce(0), propForce(1), propForce(2), propForce(3));
-
-    // RCLCPP_DEBUG_STREAM(this->get_logger(), "Publishing propSpeeds : " << propForce(0) << ", " << propForce(1) << ", " << 
-    //                                                                     propForce(2) << ", " << propForce(3));
 
     propSpeeds.data = {propForce(0), propForce(1), propForce(2), propForce(3)};
     publisher_->publish(propSpeeds);

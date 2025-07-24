@@ -17,6 +17,8 @@
 #include "drone_control/Drone.h"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
+#include "geometry_msgs/msg/point.hpp"
+
 #define GRAVITY 9.8
 
 class DronePoseSubscriber : public rclcpp::Node
@@ -63,8 +65,12 @@ private:
     double prevVelocity;
 
     void topic_callback(std::shared_ptr<const nav_msgs::msg::Odometry> msg);
+    void goalTopicCallback(std::shared_ptr<const geometry_msgs::msg::Point> msg);
+
+    std::vector<Eigen::Vector3d> goalPoints;
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_;
+    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr goalSubscription_;
     rclcpp::Publisher<ros_gz_interfaces::msg::Float32Array>::SharedPtr publisher_;
 };
 

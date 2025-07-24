@@ -90,5 +90,6 @@
   <xacro:propeller name="prop4" motor="motor4"/> 
 
   <xacro:include filename="$(find drone_sim)/urdf/gazebo.urdf"/>
+  <xacro:include filename="$(find drone_sim)/urdf/sensors.urdf"/>
 
 </robot>
